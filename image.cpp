@@ -7,6 +7,7 @@
 
 //////////////////////////////////////////
 // Constructor
+// CImage
 CImage::CImage()
 {
     m_Histogram.setImage(this);
