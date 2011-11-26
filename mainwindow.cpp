@@ -42,6 +42,9 @@ MainWindow::MainWindow()
     CheckBoxLayout->addWidget(RedChkbox      , 1,2);
     CheckBoxLayout->addWidget(GreenChkbox    , 1,3);
     CheckBoxLayout->addWidget(BlueChkbox     , 1,4);
+    CheckBoxLayout->addWidget(region1        , 2,2);
+    CheckBoxLayout->addWidget(region2        , 2,3);
+    CheckBoxLayout->addWidget(region3        , 2,4);
 
     centralLayout->addLayout(CheckBoxLayout,11,1,4,1);
 
@@ -55,6 +58,10 @@ MainWindow::MainWindow()
     centralWidget->setLayout(centralLayout);
     setWindowTitle(tr("Triet Huynh - CSC 205 A3 Filtering"));
     resize(800, 600);
+
+    rubberBand_reg1 = NULL;
+    rubberBand_reg2 = NULL;
+    rubberBand_reg3 = NULL;
 }
 
 //////////////////////////////////////////
@@ -113,6 +120,11 @@ void MainWindow::createButtons()
     GreenChkbox      = new QCheckBox  ("Green channel");
     BlueChkbox       = new QCheckBox  ("Blue channel");
 
+    region1          = new QCheckBox  ("user defind region 1");
+    region2          = new QCheckBox  ("user defind region 2");
+    region3          = new QCheckBox  ("user defind region 3");
+
+
     RecursiveChkbox->setCheckState(Qt::Unchecked);
     RedChkbox       ->setCheckState(Qt::Checked);
     GreenChkbox     ->setCheckState(Qt::Checked);
@@ -122,6 +134,9 @@ void MainWindow::createButtons()
     m_bRedChannel   = true;
     m_bGreenChannel = true;
     m_bBlueChannel  = true;
+    m_region1         = false;
+    m_region2         = false;
+    m_region3         = false;
 
     connect(EdgeDetectionBtn, SIGNAL(clicked()), this, SLOT(edgeDetection()));
     connect(BlurBtn         , SIGNAL(clicked()), this, SLOT(blur()));
@@ -131,6 +146,9 @@ void MainWindow::createButtons()
     connect(RedChkbox       , SIGNAL(toggled(bool)), this, SLOT(onRedChannelChkbox(bool)));
     connect(GreenChkbox     , SIGNAL(toggled(bool)), this, SLOT(onGreenChannelChkbox(bool)));
     connect(BlueChkbox      , SIGNAL(toggled(bool)), this, SLOT(onBlueChannelChkbox(bool)));
+    connect(region1         , SIGNAL(toggled(bool)), this, SLOT(onRegion1Chkbox(bool)));
+    connect(region2         , SIGNAL(toggled(bool)), this, SLOT(onRegion2Chkbox(bool)));
+    connect(region3         , SIGNAL(toggled(bool)), this, SLOT(onRegion3Chkbox(bool)));
 }
 
 //////////////////////////////////////////
@@ -176,7 +194,7 @@ void MainWindow::createFilterGrid()
         for(int j =0; j<m_filterHeight; j++)
         {
             QDoubleSpinBox *spinBox = new QDoubleSpinBox;
-            spinBox->setRange(-200.0f, 200.0f);
+            spinBox->setRange(-10.0f, 10.0f);
             m_rgSpinBoxes.push_back(spinBox);
             m_FilterLayout->addWidget(spinBox,i+2,j+1);
         }
@@ -417,11 +435,29 @@ void MainWindow::changedFilterGrid()
         for(int j =0; j<m_filterHeight; j++)
         {
             QDoubleSpinBox *spinBox = new QDoubleSpinBox;
-            spinBox->setRange(-200.0f, 200.0f);
+            spinBox->setRange(-10.0f, 10.0f);
             m_rgSpinBoxes.push_back(spinBox);
             m_FilterLayout->addWidget(spinBox,i+2,j+1);
         }
     }
+}
+
+//////////////////////////////////////////
+//Mouse Event
+
+void MainWindow::mousePressEvent(QMouseEvent *)
+{
+
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *)
+{
+
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *)
+{
+
 }
 
 //////////////////////////////////////////
@@ -444,6 +480,21 @@ void MainWindow::onGreenChannelChkbox(bool state)
 void MainWindow::onBlueChannelChkbox(bool state)
 {
     m_bBlueChannel = state;
+}
+
+void MainWindow::onRegion1Chkbox(bool state)
+{
+    m_region1 = state;
+}
+
+void MainWindow::onRegion2Chkbox(bool state)
+{
+    m_region2 = state;
+}
+
+void MainWindow::onRegion3Chkbox(bool state)
+{
+    m_region3 = state;
 }
 
 void MainWindow::onNormalizedChkbox(bool state)

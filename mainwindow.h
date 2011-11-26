@@ -3,6 +3,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QtGui>
 #include "image.h"
 
 QT_BEGIN_NAMESPACE
@@ -24,6 +25,9 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow();
+    void mousePressEvent(QMouseEvent *);
+    void mouseMoveEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *);
 
 private slots:
     void openFile();
@@ -36,6 +40,9 @@ private slots:
     void onGreenChannelChkbox(bool);
     void onBlueChannelChkbox(bool);
     void onNormalizedChkbox(bool);
+    void onRegion1Chkbox(bool);
+    void onRegion2Chkbox(bool);
+    void onRegion3Chkbox(bool);
 
     void onFilterWidthChanged(int);
     void onFilterHeightChanged(int);
@@ -76,6 +83,10 @@ private:
     QCheckBox   *BlueChkbox;
     QCheckBox   *NormalizedChkbox;
 
+    QCheckBox   *region1;
+    QCheckBox   *region2;
+    QCheckBox   *region3;
+
     QSpinBox    *FilterWidth;
     QSpinBox    *FilterHeight;
 
@@ -89,6 +100,15 @@ private:
     CImage m_InputImage;
     CImage m_OutputImage;
 
+    QRubberBand *rubberBand_reg1;
+    QRubberBand *rubberBand_reg2;
+    QRubberBand *rubberBand_reg3;
+
+    QPoint origin_reg1;
+    QPoint origin_reg2;
+    QPoint origin_reg3;
+
+
     QVector<QDoubleSpinBox*> m_rgSpinBoxes;
     QVector<float> m_rgFilter;
 
@@ -100,6 +120,9 @@ private:
     bool m_bRedChannel;
     bool m_bGreenChannel;
     bool m_bBlueChannel;
+    bool m_region1;
+    bool m_region2;
+    bool m_region3;
 
     bool m_bNormalized;
 };
