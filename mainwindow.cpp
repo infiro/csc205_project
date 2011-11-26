@@ -32,21 +32,25 @@ MainWindow::MainWindow()
     QLabel *outputImage = new QLabel("Output Image");
     centralLayout->addWidget(inputImage , 7, 1);
     centralLayout->addWidget(outputImage, 7, 2);
-    centralLayout->addWidget(EdgeDetectionBtn, 8,1,1,1);
-    centralLayout->addWidget(BlurBtn, 9,1,1,1);
-    centralLayout->addWidget(SharpenBtn, 10,1,1,1);
+    centralLayout->addWidget(BlurBtn, 11, 1);
+    centralLayout->addWidget(SharpenBtn, 12, 1);
     centralLayout->addWidget(ApplyBtn, 11,2,1,1);
 
-    QGridLayout *CheckBoxLayout = new QGridLayout;
-    CheckBoxLayout->addWidget(RecursiveChkbox, 1,1);
-    CheckBoxLayout->addWidget(RedChkbox      , 1,2);
-    CheckBoxLayout->addWidget(GreenChkbox    , 1,3);
-    CheckBoxLayout->addWidget(BlueChkbox     , 1,4);
-    CheckBoxLayout->addWidget(region1        , 2,2);
-    CheckBoxLayout->addWidget(region2        , 2,3);
-    CheckBoxLayout->addWidget(region3        , 2,4);
-
-    centralLayout->addLayout(CheckBoxLayout,11,1,4,1);
+    QLabel *regionStX = new QLabel("Start X");
+    QLabel *regionStY = new QLabel("Start Y");
+    QLabel *regionEndX = new QLabel("End X");
+    QLabel *regionEndY = new QLabel("End Y");
+    QLabel *regionLvl = new QLabel("Region Level");
+    RegionBoxLayout = new QGridLayout;
+    RegionBoxLayout->addWidget(regionStX, 1,2);
+    RegionBoxLayout->addWidget(regionStY, 1,3);
+    RegionBoxLayout->addWidget(regionEndX, 1,4);
+    RegionBoxLayout->addWidget(regionEndY, 1,5);
+    RegionBoxLayout->addWidget(regionLvl, 1,6);
+    RegionBoxLayout->addWidget(region1, 2,1);
+    RegionBoxLayout->addWidget(region2, 3,1);
+    RegionBoxLayout->addWidget(region3, 4,1);
+    centralLayout->addLayout(RegionBoxLayout,8,1,3,1);
 
     // Filtering Spinbox
     m_filterWidth  = 3;
@@ -56,7 +60,7 @@ MainWindow::MainWindow()
 
     // Title
     centralWidget->setLayout(centralLayout);
-    setWindowTitle(tr("Triet Huynh - CSC 205 A3 Filtering"));
+    setWindowTitle(tr("Triet & Ding - CSC 205 Project"));
     resize(800, 600);
 
     rubberBand_reg1 = NULL;
@@ -110,42 +114,25 @@ void MainWindow::createImageArea()
 // create Buttons
 void MainWindow::createButtons()
 {
-    EdgeDetectionBtn = new QPushButton("Edge detection");
-    BlurBtn          = new QPushButton("Blur");
-    SharpenBtn       = new QPushButton("Sharpen");
+    BlurBtn          = new QPushButton("Blur filter");
+    SharpenBtn       = new QPushButton("Sharpen filter");
     ApplyBtn         = new QPushButton("Apply filter");
-
-    RecursiveChkbox  = new QCheckBox  ("Use output image as source");
-    RedChkbox        = new QCheckBox  ("Red channel");
-    GreenChkbox      = new QCheckBox  ("Green channel");
-    BlueChkbox       = new QCheckBox  ("Blue channel");
 
     region1          = new QCheckBox  ("user defind region 1");
     region2          = new QCheckBox  ("user defind region 2");
     region3          = new QCheckBox  ("user defind region 3");
 
+    region1         ->setCheckState(Qt::Unchecked);
+    region2         ->setCheckState(Qt::Unchecked);
+    region3         ->setCheckState(Qt::Unchecked);
 
-    RecursiveChkbox->setCheckState(Qt::Unchecked);
-    RedChkbox       ->setCheckState(Qt::Checked);
-    GreenChkbox     ->setCheckState(Qt::Checked);
-    BlueChkbox      ->setCheckState(Qt::Checked);
-
-    m_bRecursive    = false;
-    m_bRedChannel   = true;
-    m_bGreenChannel = true;
-    m_bBlueChannel  = true;
     m_region1         = false;
     m_region2         = false;
     m_region3         = false;
 
-    connect(EdgeDetectionBtn, SIGNAL(clicked()), this, SLOT(edgeDetection()));
-    connect(BlurBtn         , SIGNAL(clicked()), this, SLOT(blur()));
-    connect(SharpenBtn      , SIGNAL(clicked()), this, SLOT(sharpen()));
+    connect(BlurBtn         , SIGNAL(clicked()), this, SLOT(onBlurBtn()));
+    connect(SharpenBtn      , SIGNAL(clicked()), this, SLOT(onSharpenBtn()));
     connect(ApplyBtn        , SIGNAL(clicked()), this, SLOT(onApplyFilterBtn()));
-    connect(RecursiveChkbox , SIGNAL(toggled(bool)), this, SLOT(onRecursiveChkbox(bool)));
-    connect(RedChkbox       , SIGNAL(toggled(bool)), this, SLOT(onRedChannelChkbox(bool)));
-    connect(GreenChkbox     , SIGNAL(toggled(bool)), this, SLOT(onGreenChannelChkbox(bool)));
-    connect(BlueChkbox      , SIGNAL(toggled(bool)), this, SLOT(onBlueChannelChkbox(bool)));
     connect(region1         , SIGNAL(toggled(bool)), this, SLOT(onRegion1Chkbox(bool)));
     connect(region2         , SIGNAL(toggled(bool)), this, SLOT(onRegion2Chkbox(bool)));
     connect(region3         , SIGNAL(toggled(bool)), this, SLOT(onRegion3Chkbox(bool)));
@@ -253,65 +240,62 @@ void MainWindow::openFile()
             OutputImageLabel->setPixmap(m_InputImage.getOriginalPixmap());
             OutputImageLabel->adjustSize();
         }
-    }    
+    }
+    createSpinBox();
 }
-
 ////////////////////////////////////////////
-// Apply filter
-void MainWindow::onApplyFilterBtn()
+// Regions' X, Y, gray&sharpen Level spinbox
+void MainWindow::createSpinBox()
 {
-    if(m_OutputImage.isNull())
-        return;
+    oneStX = new QSpinBox;
+    twoStX = new QSpinBox;
+    threeStX = new QSpinBox;
+    oneStY = new QSpinBox;
+    twoStY = new QSpinBox;
+    threeStY = new QSpinBox;
+    oneEndX = new QSpinBox;
+    twoEndX = new QSpinBox;
+    threeEndX = new QSpinBox;
+    oneEndY = new QSpinBox;
+    twoEndY = new QSpinBox;
+    threeEndY = new QSpinBox;
 
-    // Get Filter from Spinboxes
-    m_rgFilter.clear();
-    for(int i=0; i< m_rgSpinBoxes.size(); i++)
+    oneStX->setRange(0, m_InputImage.imageWidth());
+    twoStX->setRange(0, m_InputImage.imageWidth());
+    threeStX->setRange(0, m_InputImage.imageWidth());
+    oneEndX->setRange(0, m_InputImage.imageWidth());
+    twoEndX->setRange(0, m_InputImage.imageWidth());
+    threeEndX->setRange(0, m_InputImage.imageWidth());
+    oneStY->setRange(0, m_InputImage.imageHeight());
+    twoStY->setRange(0, m_InputImage.imageHeight());
+    threeStY->setRange(0, m_InputImage.imageHeight());
+    oneEndY->setRange(0, m_InputImage.imageHeight());
+    twoEndY->setRange(0, m_InputImage.imageHeight());
+    threeEndY->setRange(0, m_InputImage.imageHeight());
+
+    RegionBoxLayout->addWidget(oneStX , 2,2);
+    RegionBoxLayout->addWidget(twoStX , 3,2);
+    RegionBoxLayout->addWidget(threeStX , 4,2);
+    RegionBoxLayout->addWidget(oneStY , 2,3);
+    RegionBoxLayout->addWidget(twoStY , 3,3);
+    RegionBoxLayout->addWidget(threeStY , 4,3);
+    RegionBoxLayout->addWidget(oneEndX , 2,4);
+    RegionBoxLayout->addWidget(twoEndX , 3,4);
+    RegionBoxLayout->addWidget(threeEndX , 4,4);
+    RegionBoxLayout->addWidget(oneEndY , 2,5);
+    RegionBoxLayout->addWidget(twoEndY , 3,5);
+    RegionBoxLayout->addWidget(threeEndY , 4,5);
+
+    for(int i = 0; i < 3; i++)
     {
-        m_rgFilter.push_back(m_rgSpinBoxes[i]->value());
+        QSpinBox *Level = new QSpinBox;
+        Level->setRange(0, 100);
+        RegionBoxLayout->addWidget(Level , 2+i,6);
     }
-
-    // Apply filter
-    applyFilter();
 }
-
 ////////////////////////////////////////////
-// edge Detection
-void MainWindow::edgeDetection()
-{
-    if(m_OutputImage.isNull())
-        return;
-
-    // set up filter
-    float filterSize = m_filterWidth*m_filterHeight*1.0f;
-    float midPointWeight = -1.0f*(filterSize - 1);
-    int midPointIndex;
-
-    //If Height is even, set the mid pixel to be the previous one
-    if(m_filterHeight%2 == 0)
-        midPointIndex = filterSize/2 -1;
-    else
-        midPointIndex = filterSize/2;
-
-    m_rgFilter.clear();
-    for(int i =0; i< filterSize; i++)
-    {
-         (i == midPointIndex)?m_rgFilter.push_back(midPointWeight):m_rgFilter.push_back(1.0f);
-    }
-
-    // setup Spinbox
-    for(int i=0; i< m_rgSpinBoxes.size(); i++)
-    {
-        (i == midPointIndex)?m_rgSpinBoxes[i]->setValue(midPointWeight):m_rgSpinBoxes[i]->setValue(1.0f);
-    }
-
-    // Apply filter
-    applyFilter();
-}
-
-////////////////////////////////////////////
-// blur
-// display blur matrix and apply it
-void MainWindow::blur()
+// Display the Blur filter
+void MainWindow::onBlurBtn()
 {
     if(m_OutputImage.isNull())
         return;
@@ -321,7 +305,7 @@ void MainWindow::blur()
     m_rgFilter.clear();
     for(int i =0; i< filterSize; i++)
     {
-         m_rgFilter.push_back(1.0f);
+        m_rgFilter.push_back(1.0f);
     }
 
     // setup Spinbox
@@ -329,14 +313,11 @@ void MainWindow::blur()
     {
         m_rgSpinBoxes[i]->setValue(1.0f);
     }
-
-    // Apply filter
-    applyFilter();
 }
 
 ////////////////////////////////////////////
-// Sharpen
-void MainWindow::sharpen()
+// Display the Sharpen filter
+void MainWindow::onSharpenBtn()
 {
     if(m_OutputImage.isNull())
         return;
@@ -355,42 +336,42 @@ void MainWindow::sharpen()
     m_rgFilter.clear();
     for(int i =0; i< filterSize; i++)
     {
-         //(i == midPointIndex)?m_rgFilter.push_back(midPoint*1.0f/filterSize):m_rgFilter.push_back(-1.0f/filterSize);
+        //(i == midPointIndex)?m_rgFilter.push_back(midPoint*1.0f/filterSize):m_rgFilter.push_back(-1.0f/filterSize);
         (i == midPointIndex)?m_rgFilter.push_back(midPoint*1.0f):m_rgFilter.push_back(-1.0f);
     }
 
     // setup Spinbox
     for(int i=0; i< m_rgSpinBoxes.size(); i++)
     {
-         //(i == midPointIndex)?m_rgSpinBoxes[i]->setValue(midPoint*1.0f/filterSize):m_rgSpinBoxes[i]->setValue(-1.0f/filterSize);
+        //(i == midPointIndex)?m_rgSpinBoxes[i]->setValue(midPoint*1.0f/filterSize):m_rgSpinBoxes[i]->setValue(-1.0f/filterSize);
         (i == midPointIndex)?m_rgSpinBoxes[i]->setValue(midPoint*1.0f):m_rgSpinBoxes[i]->setValue(-1.0f);
+    }
+}
+////////////////////////////////////////////
+// Apply filter
+void MainWindow::onApplyFilterBtn()
+{
+    if(m_OutputImage.isNull())
+        return;
+
+    // Get Filter from Spinboxes
+    m_rgFilter.clear();
+    for(int i=0; i< m_rgSpinBoxes.size(); i++)
+    {
+        m_rgFilter.push_back(m_rgSpinBoxes[i]->value());
     }
 
     // Apply filter
     applyFilter();
 }
 
+
+
 ///////////////////////////////////////////////////////////////////
 // Apply filter to Output image
 void MainWindow::applyFilter()
 {
-    // Normalize filter
-    if(m_bNormalized)
-        normalizeFilter();
 
-    // override original image
-    if(m_bRecursive)
-        m_OutputImage.overrideOriginalImage();
-    else
-        m_OutputImage.setOriginalImage(m_InputImage.getOriginalImage());
-
-    // Apply filter
-    m_OutputImage.applyFilter(m_rgFilter,m_filterWidth,m_filterHeight, m_bRedChannel,m_bGreenChannel,m_bBlueChannel);
-    OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
-    OutputImageLabel->adjustSize();
-
-    // update histogram
-    m_OutputImage.updateHistogram();
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -445,43 +426,82 @@ void MainWindow::changedFilterGrid()
 //////////////////////////////////////////
 //Mouse Event
 
-void MainWindow::mousePressEvent(QMouseEvent *)
+void MainWindow::mousePressEvent(QMouseEvent *e)
 {
+    if(m_region1 && !rubberBand_reg1){
+        rubberBand_reg1 = new QRubberBand(QRubberBand::Rectangle, InputImageLabel);
+    }else if (m_region2 && !rubberBand_reg2){
+        rubberBand_reg2 = new QRubberBand(QRubberBand::Rectangle, InputImageLabel);
+    }else if (m_region3 && !rubberBand_reg3){
+        rubberBand_reg3 = new QRubberBand(QRubberBand::Rectangle, InputImageLabel);
+    }
 
+    if(rubberBand_reg1){
+        origin_reg1 = e->pos();
+        rubberBand_reg1->setGeometry(QRect(origin_reg1, QSize()));
+        rubberBand_reg1->show();
+        oneStX->setValue(origin_reg1.x());
+        oneStY->setValue(origin_reg1.y());
+    }
+    if(rubberBand_reg2){
+        origin_reg2 = e->pos();
+        rubberBand_reg2->setGeometry(QRect(origin_reg2, QSize()));
+        rubberBand_reg2->show();
+        twoStX->setValue(origin_reg2.x());
+        twoStY->setValue(origin_reg2.y());
+    }
+    if(rubberBand_reg3){
+        origin_reg3 = e->pos();
+        rubberBand_reg3->setGeometry(QRect(origin_reg3, QSize()));
+        rubberBand_reg3->show();
+        threeStX->setValue(origin_reg3.x());
+        threeStY->setValue(origin_reg3.y());
+    }
 }
 
-void MainWindow::mouseMoveEvent(QMouseEvent *)
+void MainWindow::mouseMoveEvent(QMouseEvent *e)
 {
-
+    if(rubberBand_reg1)
+    {
+        rubberBand_reg1->setGeometry(QRect(origin_reg1, e->pos()).normalized());
+    }
+    if(rubberBand_reg2)
+    {
+        rubberBand_reg2->setGeometry(QRect(origin_reg2, e->pos()).normalized());
+    }
+    if(rubberBand_reg3)
+    {
+        rubberBand_reg3->setGeometry(QRect(origin_reg3, e->pos()).normalized());
+    }
 }
 
-void MainWindow::mouseReleaseEvent(QMouseEvent *)
+void MainWindow::mouseReleaseEvent(QMouseEvent *e)
 {
-
+    if(rubberBand_reg1)
+    {
+        rubberBand_reg1->hide();
+        rubberBand_reg1 = NULL;
+        oneEndX->setValue(e->x());
+        oneEndY->setValue(e->y());
+    }
+    if(rubberBand_reg2)
+    {
+        rubberBand_reg2->hide();
+        rubberBand_reg2 = NULL;
+        twoEndX->setValue(e->x());
+        twoEndY->setValue(e->y());
+    }
+    if(rubberBand_reg3)
+    {
+        rubberBand_reg3->hide();
+        rubberBand_reg3 = NULL;
+        threeEndX->setValue(e->x());
+        threeEndY->setValue(e->y());
+    }
 }
 
 //////////////////////////////////////////
-// Recursive checkbox changed
-void MainWindow::onRecursiveChkbox(bool state)
-{
-    m_bRecursive = state;
-}
-
-void MainWindow::onRedChannelChkbox(bool state)
-{
-    m_bRedChannel = state;
-}
-
-void MainWindow::onGreenChannelChkbox(bool state)
-{
-    m_bGreenChannel = state;
-}
-
-void MainWindow::onBlueChannelChkbox(bool state)
-{
-    m_bBlueChannel = state;
-}
-
+// Region checkbox changed
 void MainWindow::onRegion1Chkbox(bool state)
 {
     m_region1 = state;

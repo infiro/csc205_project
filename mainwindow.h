@@ -31,19 +31,13 @@ public:
 
 private slots:
     void openFile();
-    void edgeDetection();
-    void blur();
-    void sharpen();
+    void onBlurBtn();
+    void onSharpenBtn();
     void onApplyFilterBtn();
-    void onRecursiveChkbox(bool);
-    void onRedChannelChkbox(bool);
-    void onGreenChannelChkbox(bool);
-    void onBlueChannelChkbox(bool);
     void onNormalizedChkbox(bool);
     void onRegion1Chkbox(bool);
     void onRegion2Chkbox(bool);
     void onRegion3Chkbox(bool);
-
     void onFilterWidthChanged(int);
     void onFilterHeightChanged(int);
 
@@ -53,6 +47,7 @@ private:
     void createFilterGrid();
     void createImageArea ();
     void createButtons   ();
+    void createSpinBox   ();
 
     void applyFilter();
     void normalizeFilter();
@@ -72,15 +67,10 @@ private:
     QLabel *InputImageLabel;
     QLabel *OutputImageLabel;
 
-    QPushButton *EdgeDetectionBtn;
+    QPushButton *ApplyBtn;
     QPushButton *BlurBtn;
     QPushButton *SharpenBtn;
-    QPushButton *ApplyBtn;
 
-    QCheckBox   *RecursiveChkbox;
-    QCheckBox   *RedChkbox;
-    QCheckBox   *GreenChkbox;
-    QCheckBox   *BlueChkbox;
     QCheckBox   *NormalizedChkbox;
 
     QCheckBox   *region1;
@@ -89,6 +79,19 @@ private:
 
     QSpinBox    *FilterWidth;
     QSpinBox    *FilterHeight;
+
+    QSpinBox    *oneStX;
+    QSpinBox    *twoStX;
+    QSpinBox    *threeStX;
+    QSpinBox    *oneEndX;
+    QSpinBox    *twoEndX;
+    QSpinBox    *threeEndX;
+    QSpinBox    *oneStY;
+    QSpinBox    *twoStY;
+    QSpinBox    *threeStY;
+    QSpinBox    *oneEndY;
+    QSpinBox    *twoEndY;
+    QSpinBox    *threeEndY;
 
     QMenu *fileMenu;
 
@@ -108,7 +111,6 @@ private:
     QPoint origin_reg2;
     QPoint origin_reg3;
 
-
     QVector<QDoubleSpinBox*> m_rgSpinBoxes;
     QVector<float> m_rgFilter;
 
@@ -116,14 +118,11 @@ private:
     int m_filterHeight;
     QGridLayout* m_FilterLayout;
 
-    bool m_bRecursive;
-    bool m_bRedChannel;
-    bool m_bGreenChannel;
-    bool m_bBlueChannel;
+    QGridLayout *RegionBoxLayout;
+
     bool m_region1;
     bool m_region2;
     bool m_region3;
-
     bool m_bNormalized;
 };
 
