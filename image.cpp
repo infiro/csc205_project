@@ -30,7 +30,7 @@ CImage::CImage(QString fileName)
 }
 
 //////////////////////////////////////////////////
-// reset to original image
+// reset to original image testing
 void CImage::resetHistogram()
 {
     m_HistoMax = 1;
