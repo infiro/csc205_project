@@ -3,7 +3,81 @@
 
 #include <QMainWindow>
 #include <QVector>
+#include <QtGui>
 #include "histogram.h"
+
+
+struct RGBColor
+{
+   GLfloat r;
+   GLfloat g;
+   GLfloat b;
+
+   RGBColor(GLfloat inR, GLfloat inG, GLfloat inB)
+   {
+       r = inR;
+       g = inG;
+       b = inB;
+   }
+
+   RGBColor() { r=0.0f ; g=0.0f ; b=0.0f;}
+
+};
+
+///////////////////////////////////////////////////////////////////////////
+// Region
+class CRegion
+{
+public:
+    CRegion():m_RubberBand(QRubberBand::Rectangle){}
+    CRegion(const QPoint &origin, const QPoint &end, const RGBColor &colour, QWidget * rubberbandWidget);
+    ~CRegion(){}
+
+    const QVector<float>& filter(){return m_rgFilters;}
+    void filter(const QVector<float> &filter, int width, int height);
+
+    int filterWidth()   {return m_filterWidth;}
+    int filterHeight()  {return m_filterHeight;}
+
+    void filterWidth (int width){m_filterWidth = width;}
+    void filterHeight(int height){m_filterHeight = height;}
+
+    int  Z_Level() {return m_ZLevel;}
+    void Z_Level( int ZLevel){m_ZLevel = ZLevel;}
+
+    QRubberBand* rubberBand() {return &m_RubberBand;}
+    void show(bool show);
+    bool containsPoint(QPoint point);
+    void moveTo(int dx, int dy);
+
+    const RGBColor& getColour()   const {return m_RGBColor;}
+    const QPoint&   getCenter()   const {return m_center;}
+    const QPoint&   getTopLeft()  const {return m_topLeft;}
+    const QPoint&   getBotRight() const {return m_botRight;}
+    const QPoint&   getBotLeft()  const {return m_botLeft;}
+    const QPoint&   getTopRight() const {return m_topRight;}
+    const QPoint&   getOrigin()   const {return m_origin;}
+    const QPoint&   getEndPoint() const {return m_endPoint;}
+private:
+    QRubberBand m_RubberBand;
+
+    QVector<float> m_rgFilters;
+    int m_filterWidth;
+    int m_filterHeight;
+
+    RGBColor m_RGBColor;
+    QPoint m_center;
+    QPoint m_origin;
+    QPoint m_endPoint;
+
+    int m_ZLevel;
+    QPoint m_topLeft;
+    QPoint m_topRight;
+    QPoint m_botLeft;
+    QPoint m_botRight;
+
+};
+
 
 //////////////////////////////////////////////////////////////////////
 // Have all information about this image
@@ -63,6 +137,9 @@ private:
     QVector<float> m_rgCDFHistogram;
 
     CHistogramWidget m_Histogram;
+
+    // List of region
+    QVector<CRegion> m_rgRegions;
 
     friend class CHistogramWidget;
 };

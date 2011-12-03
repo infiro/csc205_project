@@ -66,6 +66,18 @@ MainWindow::MainWindow()
     rubberBand_reg1 = NULL;
     rubberBand_reg2 = NULL;
     rubberBand_reg3 = NULL;
+
+    //Show regions
+    m_bShowRegion = true;
+}
+
+MainWindow::~MainWindow()
+{
+    for(int i=0; i< m_rgRegions.size(); i++)
+    {
+        if(m_rgRegions[i]!= NULL)
+            delete m_rgRegions[i];
+    }
 }
 
 //////////////////////////////////////////
@@ -181,11 +193,17 @@ void MainWindow::createFilterGrid()
         for(int j =0; j<m_filterHeight; j++)
         {
             QDoubleSpinBox *spinBox = new QDoubleSpinBox;
-            spinBox->setRange(-10.0f, 10.0f);
+            spinBox->setRange(-100.0f, 100.0f);
             m_rgSpinBoxes.push_back(spinBox);
             m_FilterLayout->addWidget(spinBox,i+2,j+1);
         }
     }
+
+    // Show region
+    QCheckBox* showRegionChkBox  = new QCheckBox("Show regions");
+    showRegionChkBox->setCheckState(Qt::Checked);
+    connect(showRegionChkBox, SIGNAL(toggled(bool)), this, SLOT(onShowRegionChkbox(bool)));
+    m_FilterLayout->addWidget(showRegionChkBox,1,4);
 }
 
 /////////////////////////////////////////////////////////////////
@@ -313,6 +331,9 @@ void MainWindow::onBlurBtn()
     {
         m_rgSpinBoxes[i]->setValue(1.0f);
     }
+
+    // Apply filter
+    applyFilter();
 }
 
 ////////////////////////////////////////////
@@ -336,16 +357,17 @@ void MainWindow::onSharpenBtn()
     m_rgFilter.clear();
     for(int i =0; i< filterSize; i++)
     {
-        //(i == midPointIndex)?m_rgFilter.push_back(midPoint*1.0f/filterSize):m_rgFilter.push_back(-1.0f/filterSize);
         (i == midPointIndex)?m_rgFilter.push_back(midPoint*1.0f):m_rgFilter.push_back(-1.0f);
     }
 
     // setup Spinbox
     for(int i=0; i< m_rgSpinBoxes.size(); i++)
     {
-        //(i == midPointIndex)?m_rgSpinBoxes[i]->setValue(midPoint*1.0f/filterSize):m_rgSpinBoxes[i]->setValue(-1.0f/filterSize);
         (i == midPointIndex)?m_rgSpinBoxes[i]->setValue(midPoint*1.0f):m_rgSpinBoxes[i]->setValue(-1.0f);
     }
+
+    // Apply filter
+    applyFilter();
 }
 ////////////////////////////////////////////
 // Apply filter
@@ -371,7 +393,23 @@ void MainWindow::onApplyFilterBtn()
 // Apply filter to Output image
 void MainWindow::applyFilter()
 {
+    // Normalize filter
+    if(m_bNormalized)
+        normalizeFilter();
 
+    // override original image
+    if(false)
+        m_OutputImage.overrideOriginalImage();
+    else
+        m_OutputImage.setOriginalImage(m_InputImage.getOriginalImage());
+
+    // Apply filter
+    m_OutputImage.applyFilter(m_rgFilter,m_filterWidth,m_filterHeight, true,true,true);
+    OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
+    OutputImageLabel->adjustSize();
+
+    // update histogram
+    m_OutputImage.updateHistogram();
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -416,7 +454,7 @@ void MainWindow::changedFilterGrid()
         for(int j =0; j<m_filterHeight; j++)
         {
             QDoubleSpinBox *spinBox = new QDoubleSpinBox;
-            spinBox->setRange(-10.0f, 10.0f);
+            spinBox->setRange(-100.0f, 100.0f);
             m_rgSpinBoxes.push_back(spinBox);
             m_FilterLayout->addWidget(spinBox,i+2,j+1);
         }
@@ -426,8 +464,9 @@ void MainWindow::changedFilterGrid()
 //////////////////////////////////////////
 //Mouse Event
 
-void MainWindow::mousePressEvent(QMouseEvent *e)
+void MainWindow::mousePressEvent(QMouseEvent *event)
 {
+    /*
     if(m_region1 && !rubberBand_reg1){
         rubberBand_reg1 = new QRubberBand(QRubberBand::Rectangle, InputImageLabel);
     }else if (m_region2 && !rubberBand_reg2){
@@ -457,10 +496,29 @@ void MainWindow::mousePressEvent(QMouseEvent *e)
         threeStX->setValue(origin_reg3.x());
         threeStY->setValue(origin_reg3.y());
     }
+    */
+    if(event->button() == Qt::LeftButton)
+    {
+        m_firstPos = event->pos();
+        m_lastPos  = event->pos();
+
+        //Find selected region
+        m_selectedRegion = NULL;
+        for(int i=0; i<m_rgRegions.size(); i++)
+        {
+            if(m_rgRegions[i]->containsPoint(m_firstPos))
+            {
+                m_selectedRegion = m_rgRegions[i];
+                break;
+            }
+        }
+    }
+
 }
 
-void MainWindow::mouseMoveEvent(QMouseEvent *e)
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
+    /*
     if(rubberBand_reg1)
     {
         rubberBand_reg1->setGeometry(QRect(origin_reg1, e->pos()).normalized());
@@ -473,10 +531,33 @@ void MainWindow::mouseMoveEvent(QMouseEvent *e)
     {
         rubberBand_reg3->setGeometry(QRect(origin_reg3, e->pos()).normalized());
     }
+    */
+
+
+    if (event->buttons() & Qt::LeftButton)
+    {
+        if(m_selectedRegion!=NULL)
+        {
+            // move selected region
+            int dx = event->pos().x() - m_lastPos.x();
+            int dy = event->pos().y() - m_lastPos.y();
+            m_selectedRegion->moveTo(dx,dy);
+            m_selectedRegion->show(m_bShowRegion);
+        }
+        else // In draw mode
+        {
+            // Draw intermediate region
+            CRegion newRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
+            newRegion.show(m_bShowRegion);
+        }
+    }
+
+    m_lastPos = event->pos();
 }
 
-void MainWindow::mouseReleaseEvent(QMouseEvent *e)
+void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
+    /*
     if(rubberBand_reg1)
     {
         rubberBand_reg1->hide();
@@ -498,6 +579,42 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *e)
         threeEndX->setValue(e->x());
         threeEndY->setValue(e->y());
     }
+    */
+
+    // Release to add new point
+    if (event->button()== Qt::LeftButton)
+    {
+        if(m_selectedRegion == NULL)
+        {
+            // Create new region
+            CRegion* newRegion = new CRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
+            m_rgRegions.push_back(newRegion);
+            m_selectedRegion = newRegion;
+        }
+        else
+        {
+            // move selected region
+            int dx = event->pos().x() - m_lastPos.x();
+            int dy = event->pos().y() - m_lastPos.y();
+            m_selectedRegion->moveTo(dx,dy);
+        }
+    }
+    else // Right click to Delete the previous point
+    if(event->button() == Qt::RightButton)
+    {
+        // Delete last region
+        if(m_rgRegions.size() > 0)
+        {
+            if(m_selectedRegion == m_rgRegions[m_rgRegions.size() -1])
+                m_selectedRegion = NULL;
+
+            delete m_rgRegions[m_rgRegions.size() -1];
+            m_rgRegions.pop_back();
+        }
+    }
+
+    updateRegions();
+    m_lastPos = event->pos();
 }
 
 //////////////////////////////////////////
@@ -530,4 +647,18 @@ void MainWindow::onFilterHeightChanged(int size)
 {
     m_filterHeight = size;
     changedFilterGrid();
+}
+
+void MainWindow::updateRegions()
+{
+    for(int i=0; i< m_rgRegions.size(); i++)
+    {
+        m_rgRegions[i]->show(m_bShowRegion);
+    }
+}
+
+void MainWindow::onShowRegionChkbox(bool state)
+{
+    m_bShowRegion = state;
+    updateRegions();
 }

@@ -4,7 +4,6 @@
 
 #include "image.h"
 
-
 //////////////////////////////////////////
 // Constructor
 // CImage
@@ -314,7 +313,7 @@ QRgb CImage::getColour(int x, int y, const QVector<float> &rgFilter, int filterW
         }
         else
         {
-            QRgb col = m_GrayImage.pixel(xloc, yloc);
+            QRgb col = m_OriginalImage.pixel(xloc, yloc);
             red   += rgFilter.at(filterLoc)*qRed  (col)*1.0f;
             green += rgFilter.at(filterLoc)*qGreen(col)*1.0f;
             blue  += rgFilter.at(filterLoc)*qBlue (col)*1.0f;

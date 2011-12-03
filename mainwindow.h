@@ -25,6 +25,7 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow();
+    ~MainWindow();
     void mousePressEvent(QMouseEvent *);
     void mouseMoveEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
@@ -40,6 +41,7 @@ private slots:
     void onRegion3Chkbox(bool);
     void onFilterWidthChanged(int);
     void onFilterHeightChanged(int);
+    void onShowRegionChkbox(bool);
 
 private:
     void createActions();
@@ -53,6 +55,7 @@ private:
     void normalizeFilter();
 
     void changedFilterGrid();
+    void updateRegions();
 
 // Attributes
 
@@ -103,10 +106,12 @@ private:
     CImage m_InputImage;
     CImage m_OutputImage;
 
+    // Rubberband display selected region
     QRubberBand *rubberBand_reg1;
     QRubberBand *rubberBand_reg2;
     QRubberBand *rubberBand_reg3;
 
+    // Origin for each region
     QPoint origin_reg1;
     QPoint origin_reg2;
     QPoint origin_reg3;
@@ -124,6 +129,14 @@ private:
     bool m_region2;
     bool m_region3;
     bool m_bNormalized;
+    bool m_bShowRegion;
+
+    //Regions
+    QVector<CRegion*> m_rgRegions;
+    QPoint m_firstPos;
+    QPoint m_lastPos;
+
+    CRegion* m_selectedRegion;
 };
 
 #endif
