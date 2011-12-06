@@ -14,7 +14,7 @@ MainWindow::MainWindow()
     setCentralWidget(centralWidget);
     QGridLayout *centralLayout = new QGridLayout;
 
-    // Create Menus and actions
+    //creat Menus and actions
     createActions();
     createMenus();
 
@@ -41,16 +41,18 @@ MainWindow::MainWindow()
     QLabel *regionEndX = new QLabel("End X");
     QLabel *regionEndY = new QLabel("End Y");
     QLabel *regionLvl = new QLabel("Region Level");
+    QLabel *selectedRegionLabel = new QLabel("User Selected Region: ");
     RegionBoxLayout = new QGridLayout;
     RegionBoxLayout->addWidget(regionStX, 1,2);
     RegionBoxLayout->addWidget(regionStY, 1,3);
     RegionBoxLayout->addWidget(regionEndX, 1,4);
     RegionBoxLayout->addWidget(regionEndY, 1,5);
     RegionBoxLayout->addWidget(regionLvl, 1,6);
-    RegionBoxLayout->addWidget(region1, 2,1);
-    RegionBoxLayout->addWidget(region2, 3,1);
-    RegionBoxLayout->addWidget(region3, 4,1);
-    centralLayout->addLayout(RegionBoxLayout,8,1,3,1);
+    RegionBoxLayout->addWidget(selectedRegionLabel, 2,1);
+    centralLayout->addLayout(RegionBoxLayout,8,1,2,1);
+
+    //Region Spinbox
+    createSpinBox();
 
     // Filtering Spinbox
     m_filterWidth  = 3;
@@ -62,10 +64,6 @@ MainWindow::MainWindow()
     centralWidget->setLayout(centralLayout);
     setWindowTitle(tr("Triet & Ding - CSC 205 Project"));
     resize(800, 600);
-
-    rubberBand_reg1 = NULL;
-    rubberBand_reg2 = NULL;
-    rubberBand_reg3 = NULL;
 
     //Show regions
     m_bShowRegion = true;
@@ -130,24 +128,9 @@ void MainWindow::createButtons()
     SharpenBtn       = new QPushButton("Sharpen filter");
     ApplyBtn         = new QPushButton("Apply filter");
 
-    region1          = new QCheckBox  ("user defind region 1");
-    region2          = new QCheckBox  ("user defind region 2");
-    region3          = new QCheckBox  ("user defind region 3");
-
-    region1         ->setCheckState(Qt::Unchecked);
-    region2         ->setCheckState(Qt::Unchecked);
-    region3         ->setCheckState(Qt::Unchecked);
-
-    m_region1         = false;
-    m_region2         = false;
-    m_region3         = false;
-
     connect(BlurBtn         , SIGNAL(clicked()), this, SLOT(onBlurBtn()));
     connect(SharpenBtn      , SIGNAL(clicked()), this, SLOT(onSharpenBtn()));
     connect(ApplyBtn        , SIGNAL(clicked()), this, SLOT(onApplyFilterBtn()));
-    connect(region1         , SIGNAL(toggled(bool)), this, SLOT(onRegion1Chkbox(bool)));
-    connect(region2         , SIGNAL(toggled(bool)), this, SLOT(onRegion2Chkbox(bool)));
-    connect(region3         , SIGNAL(toggled(bool)), this, SLOT(onRegion3Chkbox(bool)));
 }
 
 //////////////////////////////////////////
@@ -259,57 +242,36 @@ void MainWindow::openFile()
             OutputImageLabel->adjustSize();
         }
     }
-    createSpinBox();
+
+    selectedRegionStX->setRange(0, 1000);
+    selectedRegionEndX->setRange(0, 1000);
+    selectedRegionStY->setRange(0, 1000);
+    selectedRegionEndY->setRange(0, 1000);
+
+    //set range for the region'start position and end position
+   /* selectedRegionStX->setRange(0, m_InputImage.imageWidth());
+    selectedRegionEndX->setRange(0, m_InputImage.imageWidth());
+    selectedRegionStY->setRange(0, m_InputImage.imageHeight());
+    selectedRegionEndY->setRange(0, m_InputImage.imageHeight());*/
 }
 ////////////////////////////////////////////
-// Regions' X, Y, gray&sharpen Level spinbox
+// Selected Regions' X, Y, gray&sharpen Level spinbox
 void MainWindow::createSpinBox()
 {
-    oneStX = new QSpinBox;
-    twoStX = new QSpinBox;
-    threeStX = new QSpinBox;
-    oneStY = new QSpinBox;
-    twoStY = new QSpinBox;
-    threeStY = new QSpinBox;
-    oneEndX = new QSpinBox;
-    twoEndX = new QSpinBox;
-    threeEndX = new QSpinBox;
-    oneEndY = new QSpinBox;
-    twoEndY = new QSpinBox;
-    threeEndY = new QSpinBox;
+    selectedRegionStX = new QSpinBox;
+    selectedRegionStY = new QSpinBox;
+    selectedRegionEndX = new QSpinBox;
+    selectedRegionEndY = new QSpinBox;
 
-    oneStX->setRange(0, m_InputImage.imageWidth());
-    twoStX->setRange(0, m_InputImage.imageWidth());
-    threeStX->setRange(0, m_InputImage.imageWidth());
-    oneEndX->setRange(0, m_InputImage.imageWidth());
-    twoEndX->setRange(0, m_InputImage.imageWidth());
-    threeEndX->setRange(0, m_InputImage.imageWidth());
-    oneStY->setRange(0, m_InputImage.imageHeight());
-    twoStY->setRange(0, m_InputImage.imageHeight());
-    threeStY->setRange(0, m_InputImage.imageHeight());
-    oneEndY->setRange(0, m_InputImage.imageHeight());
-    twoEndY->setRange(0, m_InputImage.imageHeight());
-    threeEndY->setRange(0, m_InputImage.imageHeight());
+    selectedRegionLvl = new QSpinBox;
+    connect(selectedRegionLvl, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionLvlSpinbox()));
+    selectedRegionLvl->setRange(0,10);
 
-    RegionBoxLayout->addWidget(oneStX , 2,2);
-    RegionBoxLayout->addWidget(twoStX , 3,2);
-    RegionBoxLayout->addWidget(threeStX , 4,2);
-    RegionBoxLayout->addWidget(oneStY , 2,3);
-    RegionBoxLayout->addWidget(twoStY , 3,3);
-    RegionBoxLayout->addWidget(threeStY , 4,3);
-    RegionBoxLayout->addWidget(oneEndX , 2,4);
-    RegionBoxLayout->addWidget(twoEndX , 3,4);
-    RegionBoxLayout->addWidget(threeEndX , 4,4);
-    RegionBoxLayout->addWidget(oneEndY , 2,5);
-    RegionBoxLayout->addWidget(twoEndY , 3,5);
-    RegionBoxLayout->addWidget(threeEndY , 4,5);
-
-    for(int i = 0; i < 3; i++)
-    {
-        QSpinBox *Level = new QSpinBox;
-        Level->setRange(0, 100);
-        RegionBoxLayout->addWidget(Level , 2+i,6);
-    }
+    RegionBoxLayout->addWidget(selectedRegionStX, 2,2);
+    RegionBoxLayout->addWidget(selectedRegionStY, 2,3);
+    RegionBoxLayout->addWidget(selectedRegionEndX, 2,4);
+    RegionBoxLayout->addWidget(selectedRegionEndY, 2,5);
+    RegionBoxLayout->addWidget(selectedRegionLvl, 2,6);
 }
 ////////////////////////////////////////////
 // Display the Blur filter
@@ -466,37 +428,6 @@ void MainWindow::changedFilterGrid()
 
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
-    /*
-    if(m_region1 && !rubberBand_reg1){
-        rubberBand_reg1 = new QRubberBand(QRubberBand::Rectangle, InputImageLabel);
-    }else if (m_region2 && !rubberBand_reg2){
-        rubberBand_reg2 = new QRubberBand(QRubberBand::Rectangle, InputImageLabel);
-    }else if (m_region3 && !rubberBand_reg3){
-        rubberBand_reg3 = new QRubberBand(QRubberBand::Rectangle, InputImageLabel);
-    }
-
-    if(rubberBand_reg1){
-        origin_reg1 = e->pos();
-        rubberBand_reg1->setGeometry(QRect(origin_reg1, QSize()));
-        rubberBand_reg1->show();
-        oneStX->setValue(origin_reg1.x());
-        oneStY->setValue(origin_reg1.y());
-    }
-    if(rubberBand_reg2){
-        origin_reg2 = e->pos();
-        rubberBand_reg2->setGeometry(QRect(origin_reg2, QSize()));
-        rubberBand_reg2->show();
-        twoStX->setValue(origin_reg2.x());
-        twoStY->setValue(origin_reg2.y());
-    }
-    if(rubberBand_reg3){
-        origin_reg3 = e->pos();
-        rubberBand_reg3->setGeometry(QRect(origin_reg3, QSize()));
-        rubberBand_reg3->show();
-        threeStX->setValue(origin_reg3.x());
-        threeStY->setValue(origin_reg3.y());
-    }
-    */
     if(event->button() == Qt::LeftButton)
     {
         m_firstPos = event->pos();
@@ -518,22 +449,6 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    /*
-    if(rubberBand_reg1)
-    {
-        rubberBand_reg1->setGeometry(QRect(origin_reg1, e->pos()).normalized());
-    }
-    if(rubberBand_reg2)
-    {
-        rubberBand_reg2->setGeometry(QRect(origin_reg2, e->pos()).normalized());
-    }
-    if(rubberBand_reg3)
-    {
-        rubberBand_reg3->setGeometry(QRect(origin_reg3, e->pos()).normalized());
-    }
-    */
-
-
     if (event->buttons() & Qt::LeftButton)
     {
         if(m_selectedRegion!=NULL)
@@ -557,30 +472,6 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
-    /*
-    if(rubberBand_reg1)
-    {
-        rubberBand_reg1->hide();
-        rubberBand_reg1 = NULL;
-        oneEndX->setValue(e->x());
-        oneEndY->setValue(e->y());
-    }
-    if(rubberBand_reg2)
-    {
-        rubberBand_reg2->hide();
-        rubberBand_reg2 = NULL;
-        twoEndX->setValue(e->x());
-        twoEndY->setValue(e->y());
-    }
-    if(rubberBand_reg3)
-    {
-        rubberBand_reg3->hide();
-        rubberBand_reg3 = NULL;
-        threeEndX->setValue(e->x());
-        threeEndY->setValue(e->y());
-    }
-    */
-
     // Release to add new point
     if (event->button()== Qt::LeftButton)
     {
@@ -590,6 +481,9 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             CRegion* newRegion = new CRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
             m_rgRegions.push_back(newRegion);
             m_selectedRegion = newRegion;
+            //update the current selected region's end position
+            selectedRegionEndX->setValue(m_lastPos.x());
+            selectedRegionEndY->setValue(m_lastPos.y());
         }
         else
         {
@@ -598,6 +492,13 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             int dy = event->pos().y() - m_lastPos.y();
             m_selectedRegion->moveTo(dx,dy);
         }
+
+        //display the current selected region's start and end position
+        selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
+        selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
+        selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
+        selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
+        selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
     }
     else // Right click to Delete the previous point
     if(event->button() == Qt::RightButton)
@@ -611,6 +512,27 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             delete m_rgRegions[m_rgRegions.size() -1];
             m_rgRegions.pop_back();
         }
+
+        if(m_rgRegions.size() != 0)
+        {
+            //if the selected region is null
+            if (m_selectedRegion == NULL)
+                m_selectedRegion = m_rgRegions[m_rgRegions.size() -1];
+
+            //display the current selected region's start and end position
+            selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
+            selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
+            selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
+            selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
+            selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
+        } else {
+                //display the start and end position to 0
+                selectedRegionStX->setValue(0);
+                selectedRegionStY->setValue(0);
+                selectedRegionEndX->setValue(0);
+                selectedRegionEndY->setValue(0);
+                selectedRegionLvl->setValue(0);
+        }
     }
 
     updateRegions();
@@ -619,20 +541,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
 //////////////////////////////////////////
 // Region checkbox changed
-void MainWindow::onRegion1Chkbox(bool state)
-{
-    m_region1 = state;
-}
-
-void MainWindow::onRegion2Chkbox(bool state)
-{
-    m_region2 = state;
-}
-
-void MainWindow::onRegion3Chkbox(bool state)
-{
-    m_region3 = state;
-}
 
 void MainWindow::onNormalizedChkbox(bool state)
 {
@@ -661,4 +569,12 @@ void MainWindow::onShowRegionChkbox(bool state)
 {
     m_bShowRegion = state;
     updateRegions();
+}
+
+void MainWindow::onSelectedRegionLvlSpinbox()
+{
+    if (m_selectedRegion != NULL)
+    {
+        m_selectedRegion->Z_Level(selectedRegionLvl->value());
+    }
 }

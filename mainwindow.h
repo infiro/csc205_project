@@ -36,12 +36,10 @@ private slots:
     void onSharpenBtn();
     void onApplyFilterBtn();
     void onNormalizedChkbox(bool);
-    void onRegion1Chkbox(bool);
-    void onRegion2Chkbox(bool);
-    void onRegion3Chkbox(bool);
     void onFilterWidthChanged(int);
     void onFilterHeightChanged(int);
     void onShowRegionChkbox(bool);
+    void onSelectedRegionLvlSpinbox();
 
 private:
     void createActions();
@@ -76,25 +74,16 @@ private:
 
     QCheckBox   *NormalizedChkbox;
 
-    QCheckBox   *region1;
-    QCheckBox   *region2;
-    QCheckBox   *region3;
-
     QSpinBox    *FilterWidth;
     QSpinBox    *FilterHeight;
 
-    QSpinBox    *oneStX;
-    QSpinBox    *twoStX;
-    QSpinBox    *threeStX;
-    QSpinBox    *oneEndX;
-    QSpinBox    *twoEndX;
-    QSpinBox    *threeEndX;
-    QSpinBox    *oneStY;
-    QSpinBox    *twoStY;
-    QSpinBox    *threeStY;
-    QSpinBox    *oneEndY;
-    QSpinBox    *twoEndY;
-    QSpinBox    *threeEndY;
+    //display the selected region position
+    QSpinBox    *selectedRegionStX;
+    QSpinBox    *selectedRegionStY;
+    QSpinBox    *selectedRegionEndX;
+    QSpinBox    *selectedRegionEndY;
+    QSpinBox    *selectedRegionLvl;
+
 
     QMenu *fileMenu;
 
@@ -106,16 +95,6 @@ private:
     CImage m_InputImage;
     CImage m_OutputImage;
 
-    // Rubberband display selected region
-    QRubberBand *rubberBand_reg1;
-    QRubberBand *rubberBand_reg2;
-    QRubberBand *rubberBand_reg3;
-
-    // Origin for each region
-    QPoint origin_reg1;
-    QPoint origin_reg2;
-    QPoint origin_reg3;
-
     QVector<QDoubleSpinBox*> m_rgSpinBoxes;
     QVector<float> m_rgFilter;
 
@@ -125,9 +104,6 @@ private:
 
     QGridLayout *RegionBoxLayout;
 
-    bool m_region1;
-    bool m_region2;
-    bool m_region3;
     bool m_bNormalized;
     bool m_bShowRegion;
 
