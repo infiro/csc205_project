@@ -3,6 +3,7 @@
 #include <QDebug>
 
 #include "image.h"
+#include "mainwindow.h"
 
 //////////////////////////////////////////
 // Constructor
@@ -54,6 +55,17 @@ bool CImage::load(QString fileName)
 
     m_fileName = fileName;
     m_Histogram.updateGL();
+
+    return true;
+}
+
+//////////////////////////////////////////////////
+// save image
+bool CImage::save(QString fileName)
+{
+    // save file
+    if(!m_GrayImage.save(fileName))
+        return false;
 
     return true;
 }
@@ -275,6 +287,54 @@ void CImage::applyFilter(const QVector<float> &rgFilter, int FilterWidth, int Fi
             int blue  = (blueChannel) ?qBlue(col):qBlue(OriginalCol);
 
             m_GrayImage.setPixel(i, j, qRgb(red,green,blue));
+        }
+    }
+
+    // Recalculate Histograms
+    CalculateHistogram();
+}
+
+/////////////////////////////////////////
+// Apply Smallgantic!
+void CImage::applyFilter(MainWindow* window)
+{
+    if(m_OriginalImage.isNull())
+        return;
+
+    m_GrayImage = QImage(m_OriginalImage);
+
+    // get color valur for each pixel
+    float width  = m_GrayImage.width();
+    float height = m_GrayImage.height();
+    for (float i = 0; i < width; ++i)
+    {
+        for (float j = 0; j < height; ++j)
+        {
+            // Find Region of this pixel
+            QVector<CRegion*> rgRegions = window->getRegions();
+            CRegion* region = NULL;
+            for(int k=0; k< rgRegions.size(); k++)
+            {
+                float xRatio = i*1.0f/width;
+                float yRatio = j*1.0f/height;
+
+                if(rgRegions[k]->containsPixel(xRatio,yRatio))
+                {
+                    region = rgRegions[k];
+                    break;
+                }
+            }
+            // Check if found
+            if(region!= NULL)
+            {
+                int z_value = region->Z_Level();
+                MainWindow::FILTER filter = window->getFilter(z_value);
+                if(filter.rgFilter.size()!=0)
+                {
+                    QRgb col = getColour(i,j,filter.rgFilter,filter.width,filter.height);
+                    m_GrayImage.setPixel(i, j, col);
+                }
+            }
         }
     }
 

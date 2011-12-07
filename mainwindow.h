@@ -24,22 +24,39 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
+    struct FILTER
+    {
+        QVector<float> rgFilter;
+        int width;
+        int height;
+        int recursiveTime;
+    };
+
     MainWindow();
     ~MainWindow();
     void mousePressEvent(QMouseEvent *);
     void mouseMoveEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
 
+    FILTER getFilter(int z);
+    QVector<CRegion*> getRegions(){return m_rgRegions;}
+
 private slots:
     void openFile();
-    void onBlurBtn();
+    void saveFile();
+    void onResetBtn();
     void onSharpenBtn();
     void onApplyFilterBtn();
     void onNormalizedChkbox(bool);
     void onFilterWidthChanged(int);
     void onFilterHeightChanged(int);
     void onShowRegionChkbox(bool);
-    void onSelectedRegionLvlSpinbox();
+
+    void onSelectedRegionLvlSpinbox(int);
+    void onSelectedRegionStXSpinbox(int);
+    void onSelectedRegionEndXSpinbox(int);
+    void onSelectedRegionStYSpinbox(int);
+    void onSelectedRegionEndYSpinbox(int);
 
 private:
     void createActions();
@@ -78,16 +95,17 @@ private:
     QSpinBox    *FilterHeight;
 
     //display the selected region position
-    QSpinBox    *selectedRegionStX;
-    QSpinBox    *selectedRegionStY;
-    QSpinBox    *selectedRegionEndX;
-    QSpinBox    *selectedRegionEndY;
-    QSpinBox    *selectedRegionLvl;
+    QSpinBox    *m_selectedRegionStX;
+    QSpinBox    *m_selectedRegionStY;
+    QSpinBox    *m_selectedRegionEndX;
+    QSpinBox    *m_selectedRegionEndY;
+    QSpinBox    *m_selectedRegionLvl;
 
 
     QMenu *fileMenu;
 
     QAction *openFileAct;
+    QAction *saveFileAct;
     QAction *exitAct;
 
     QString filename;

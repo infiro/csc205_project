@@ -36,12 +36,12 @@ MainWindow::MainWindow()
     centralLayout->addWidget(SharpenBtn, 12, 1);
     centralLayout->addWidget(ApplyBtn, 11,2,1,1);
 
-    QLabel *regionStX = new QLabel("Start X");
-    QLabel *regionStY = new QLabel("Start Y");
-    QLabel *regionEndX = new QLabel("End X");
-    QLabel *regionEndY = new QLabel("End Y");
-    QLabel *regionLvl = new QLabel("Region Level");
-    QLabel *selectedRegionLabel = new QLabel("User Selected Region: ");
+    QLabel *regionStX = new QLabel("Left");
+    QLabel *regionStY = new QLabel("Top");
+    QLabel *regionEndX = new QLabel("Right");
+    QLabel *regionEndY = new QLabel("Bot");
+    QLabel *regionLvl = new QLabel("Depth Level(10 is closest)");
+    QLabel *selectedRegionLabel = new QLabel("Selected Region: ");
     RegionBoxLayout = new QGridLayout;
     RegionBoxLayout->addWidget(regionStX, 1,2);
     RegionBoxLayout->addWidget(regionStY, 1,3);
@@ -124,11 +124,11 @@ void MainWindow::createImageArea()
 // create Buttons
 void MainWindow::createButtons()
 {
-    BlurBtn          = new QPushButton("Blur filter");
-    SharpenBtn       = new QPushButton("Sharpen filter");
-    ApplyBtn         = new QPushButton("Apply filter");
+    BlurBtn          = new QPushButton("Reset");
+    SharpenBtn       = new QPushButton("Nothing filter");
+    ApplyBtn         = new QPushButton("Smallgantic");
 
-    connect(BlurBtn         , SIGNAL(clicked()), this, SLOT(onBlurBtn()));
+    connect(BlurBtn         , SIGNAL(clicked()), this, SLOT(onResetBtn()));
     connect(SharpenBtn      , SIGNAL(clicked()), this, SLOT(onSharpenBtn()));
     connect(ApplyBtn        , SIGNAL(clicked()), this, SLOT(onApplyFilterBtn()));
 }
@@ -199,6 +199,11 @@ void MainWindow::createActions()
     openFileAct->setShortcut(tr("Ctrl+O"));
     connect(openFileAct, SIGNAL(triggered()), this, SLOT(openFile()));
 
+    // save file
+    saveFileAct = new QAction(tr("&Save Output Image File"), this);
+    saveFileAct->setShortcut(tr("Ctrl+I"));
+    connect(saveFileAct, SIGNAL(triggered()), this, SLOT(saveFile()));
+
     // Exit menu
     exitAct = new QAction(tr("E&xit"), this);
     exitAct->setShortcuts(QKeySequence::Close);
@@ -211,6 +216,7 @@ void MainWindow::createMenus()
 {
     fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(openFileAct);
+    fileMenu->addAction(saveFileAct);
 
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
@@ -242,60 +248,74 @@ void MainWindow::openFile()
             OutputImageLabel->adjustSize();
         }
     }
-
-    selectedRegionStX->setRange(0, 1000);
-    selectedRegionEndX->setRange(0, 1000);
-    selectedRegionStY->setRange(0, 1000);
-    selectedRegionEndY->setRange(0, 1000);
-
-    //set range for the region'start position and end position
-   /* selectedRegionStX->setRange(0, m_InputImage.imageWidth());
-    selectedRegionEndX->setRange(0, m_InputImage.imageWidth());
-    selectedRegionStY->setRange(0, m_InputImage.imageHeight());
-    selectedRegionEndY->setRange(0, m_InputImage.imageHeight());*/
 }
+
+///////////////////////////////////////////////////////////////
+// On file save
+// Save output image
+void MainWindow::saveFile()
+{
+    QString savefilename = QFileDialog::getSaveFileName(this, tr("save file"), "/home",tr("Images (*.png *.tif *.bmp *.jpg)")  );
+
+    if(!savefilename.isEmpty())
+    {
+        if(!m_OutputImage.save(savefilename))
+        {
+            QMessageBox::information(this, tr("Warning!"), tr("Cannot save %1.").arg(savefilename));
+            return;
+        }
+    }
+}
+
 ////////////////////////////////////////////
 // Selected Regions' X, Y, gray&sharpen Level spinbox
 void MainWindow::createSpinBox()
 {
-    selectedRegionStX = new QSpinBox;
-    selectedRegionStY = new QSpinBox;
-    selectedRegionEndX = new QSpinBox;
-    selectedRegionEndY = new QSpinBox;
+    m_selectedRegionStX  = new QSpinBox;
+    m_selectedRegionStY  = new QSpinBox;
+    m_selectedRegionEndX = new QSpinBox;
+    m_selectedRegionEndY = new QSpinBox;
+    m_selectedRegionLvl  = new QSpinBox;
 
-    selectedRegionLvl = new QSpinBox;
-    connect(selectedRegionLvl, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionLvlSpinbox()));
-    selectedRegionLvl->setRange(0,10);
+    m_selectedRegionStX ->setRange(0, 1000);
+    m_selectedRegionEndX->setRange(0, 1000);
+    m_selectedRegionStY ->setRange(0, 1000);
+    m_selectedRegionEndY->setRange(0, 1000);
+    m_selectedRegionLvl ->setRange(-10,10);
 
-    RegionBoxLayout->addWidget(selectedRegionStX, 2,2);
-    RegionBoxLayout->addWidget(selectedRegionStY, 2,3);
-    RegionBoxLayout->addWidget(selectedRegionEndX, 2,4);
-    RegionBoxLayout->addWidget(selectedRegionEndY, 2,5);
-    RegionBoxLayout->addWidget(selectedRegionLvl, 2,6);
+    RegionBoxLayout->addWidget(m_selectedRegionStX, 2,2);
+    RegionBoxLayout->addWidget(m_selectedRegionStY, 2,3);
+    RegionBoxLayout->addWidget(m_selectedRegionEndX, 2,4);
+    RegionBoxLayout->addWidget(m_selectedRegionEndY, 2,5);
+    RegionBoxLayout->addWidget(m_selectedRegionLvl, 2,6);
+
+    // Connect action
+    connect(m_selectedRegionLvl , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionLvlSpinbox(int)));
+    connect(m_selectedRegionStX , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionStXSpinbox(int)));
+    connect(m_selectedRegionEndX, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionEndXSpinbox(int)));
+    connect(m_selectedRegionStY , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionStYSpinbox(int)));
+    connect(m_selectedRegionEndY, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionEndYSpinbox(int)));
 }
 ////////////////////////////////////////////
-// Display the Blur filter
-void MainWindow::onBlurBtn()
+// Reset
+void MainWindow::onResetBtn()
 {
     if(m_OutputImage.isNull())
         return;
 
-    // calculate Blur matrix based on Filtersize
-    float filterSize = m_filterWidth*m_filterHeight*1.0f;
-    m_rgFilter.clear();
-    for(int i =0; i< filterSize; i++)
-    {
-        m_rgFilter.push_back(1.0f);
-    }
+    // Clean OutputImage
+    OutputImageLabel->setPixmap(m_OutputImage.getOriginalPixmap());
+    OutputImageLabel->adjustSize();
+    m_OutputImage.updateHistogram();
 
-    // setup Spinbox
-    for(int i=0; i< m_rgSpinBoxes.size(); i++)
+    // Clean Regions
+    for(int i=0; i< m_rgRegions.size(); i++)
     {
-        m_rgSpinBoxes[i]->setValue(1.0f);
+        if(m_rgRegions[i]!= NULL)
+            delete m_rgRegions[i];
     }
-
-    // Apply filter
-    applyFilter();
+    m_rgRegions.clear();
+    m_selectedRegion = NULL;
 }
 
 ////////////////////////////////////////////
@@ -304,33 +324,8 @@ void MainWindow::onSharpenBtn()
 {
     if(m_OutputImage.isNull())
         return;
-
-    // set up filter
-    float filterSize = m_filterWidth*m_filterHeight*1.0f;
-    float midPoint = filterSize + filterSize - 1;
-    int midPointIndex;
-
-    //If Height is even, set the mid pixel to be the previous one
-    if(m_filterHeight%2 == 0)
-        midPointIndex = filterSize/2 -1;
-    else
-        midPointIndex = filterSize/2;
-
-    m_rgFilter.clear();
-    for(int i =0; i< filterSize; i++)
-    {
-        (i == midPointIndex)?m_rgFilter.push_back(midPoint*1.0f):m_rgFilter.push_back(-1.0f);
-    }
-
-    // setup Spinbox
-    for(int i=0; i< m_rgSpinBoxes.size(); i++)
-    {
-        (i == midPointIndex)?m_rgSpinBoxes[i]->setValue(midPoint*1.0f):m_rgSpinBoxes[i]->setValue(-1.0f);
-    }
-
-    // Apply filter
-    applyFilter();
 }
+
 ////////////////////////////////////////////
 // Apply filter
 void MainWindow::onApplyFilterBtn()
@@ -338,35 +333,16 @@ void MainWindow::onApplyFilterBtn()
     if(m_OutputImage.isNull())
         return;
 
-    // Get Filter from Spinboxes
-    m_rgFilter.clear();
-    for(int i=0; i< m_rgSpinBoxes.size(); i++)
-    {
-        m_rgFilter.push_back(m_rgSpinBoxes[i]->value());
-    }
-
     // Apply filter
     applyFilter();
 }
-
-
 
 ///////////////////////////////////////////////////////////////////
 // Apply filter to Output image
 void MainWindow::applyFilter()
 {
-    // Normalize filter
-    if(m_bNormalized)
-        normalizeFilter();
-
-    // override original image
-    if(false)
-        m_OutputImage.overrideOriginalImage();
-    else
-        m_OutputImage.setOriginalImage(m_InputImage.getOriginalImage());
-
     // Apply filter
-    m_OutputImage.applyFilter(m_rgFilter,m_filterWidth,m_filterHeight, true,true,true);
+    m_OutputImage.applyFilter(this);
     OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
     OutputImageLabel->adjustSize();
 
@@ -425,7 +401,6 @@ void MainWindow::changedFilterGrid()
 
 //////////////////////////////////////////
 //Mouse Event
-
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
     if(event->button() == Qt::LeftButton)
@@ -481,9 +456,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             CRegion* newRegion = new CRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
             m_rgRegions.push_back(newRegion);
             m_selectedRegion = newRegion;
-            //update the current selected region's end position
-            selectedRegionEndX->setValue(m_lastPos.x());
-            selectedRegionEndY->setValue(m_lastPos.y());
         }
         else
         {
@@ -494,11 +466,11 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         }
 
         //display the current selected region's start and end position
-        selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
-        selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
-        selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
-        selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
-        selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
+        m_selectedRegionStX->setValue (m_selectedRegion->getTopLeft().x());
+        m_selectedRegionStY->setValue (m_selectedRegion->getTopLeft().y());
+        m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
+        m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
+        m_selectedRegionLvl->setValue (m_selectedRegion->Z_Level());
     }
     else // Right click to Delete the previous point
     if(event->button() == Qt::RightButton)
@@ -520,18 +492,20 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
                 m_selectedRegion = m_rgRegions[m_rgRegions.size() -1];
 
             //display the current selected region's start and end position
-            selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
-            selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
-            selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
-            selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
-            selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
-        } else {
-                //display the start and end position to 0
-                selectedRegionStX->setValue(0);
-                selectedRegionStY->setValue(0);
-                selectedRegionEndX->setValue(0);
-                selectedRegionEndY->setValue(0);
-                selectedRegionLvl->setValue(0);
+            m_selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
+            m_selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
+            m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
+            m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
+            m_selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
+        }
+        else
+        {
+            //display the start and end position to 0
+            m_selectedRegionStX->setValue(0);
+            m_selectedRegionStY->setValue(0);
+            m_selectedRegionEndX->setValue(0);
+            m_selectedRegionEndY->setValue(0);
+            m_selectedRegionLvl->setValue(0);
         }
     }
 
@@ -539,9 +513,79 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     m_lastPos = event->pos();
 }
 
+
+
+//////////////////////////////////////////////
+// Return the approviate filter depend on z value
+MainWindow::FILTER MainWindow::getFilter(int z)
+{
+    FILTER myFilter;
+
+    if(z == 0)
+    {
+        //do nothing
+        myFilter.width         = 0;
+        myFilter.height        = 0;
+        myFilter.recursiveTime = 0;
+    }
+    else
+    if(z<0) // Apply bluring
+    {
+        myFilter.width         = 0-z;
+        myFilter.height        = 0-z;
+        myFilter.recursiveTime = z;
+
+        float filterSize = myFilter.width*myFilter.height*1.0f;
+        for(int i =0; i< filterSize; i++)
+        {
+            myFilter.rgFilter.push_back(1.0f);
+        }
+    }
+    else
+    if(z>0) // Apply sharpening
+    {
+        myFilter.width         = z;
+        myFilter.height        = z;
+        myFilter.recursiveTime = z;
+
+        // set up filter
+        float filterSize = myFilter.width*myFilter.height*1.0f;
+        float midPoint = filterSize + filterSize - 1;
+        int midPointIndex;
+
+        //If Height is even, set the mid pixel to be the previous one
+        if(myFilter.height%2 == 0)
+            midPointIndex = filterSize/2 -1;
+        else
+            midPointIndex = filterSize/2;
+
+        for(int i =0; i< filterSize; i++)
+        {
+            (i == midPointIndex)?myFilter.rgFilter.push_back(midPoint*1.0f):myFilter.rgFilter.push_back(-1.0f);
+        }
+    }
+
+    // Normalize filter
+    float weight = 0.0f;
+    for(int i =0; i< myFilter.rgFilter.size(); i++)
+    {
+         weight += myFilter.rgFilter[i];
+    }
+
+    if(weight == 0.0f)
+        weight = 1.0f;
+
+    for(int i =0; i< myFilter.rgFilter.size(); i++)
+    {
+         myFilter.rgFilter[i] /= weight;
+    }
+
+    return myFilter;
+}
+
+
 //////////////////////////////////////////
 // Region checkbox changed
-
 void MainWindow::onNormalizedChkbox(bool state)
 {
     m_bNormalized = state;
@@ -571,10 +615,49 @@ void MainWindow::onShowRegionChkbox(bool state)
     updateRegions();
 }
 
-void MainWindow::onSelectedRegionLvlSpinbox()
+void MainWindow::onSelectedRegionLvlSpinbox(int value)
 {
     if (m_selectedRegion != NULL)
     {
-        m_selectedRegion->Z_Level(selectedRegionLvl->value());
+        m_selectedRegion->Z_Level(value);
     }
 }
+
+void MainWindow::onSelectedRegionStXSpinbox(int value)
+{
+    if (m_selectedRegion != NULL)
+    {
+        QPoint topLeft = m_selectedRegion->getTopLeft();
+        topLeft.setX(value);
+        m_selectedRegion->setTopLeft(topLeft);
+    }
+}
+void MainWindow::onSelectedRegionStYSpinbox(int value)
+{
+    if (m_selectedRegion != NULL)
+    {
+        QPoint topLeft = m_selectedRegion->getTopLeft();
+        topLeft.setY(value);
+        m_selectedRegion->setTopLeft(topLeft);
+    }
+}
+void MainWindow::onSelectedRegionEndXSpinbox(int value)
+{
+    if (m_selectedRegion != NULL)
+    {
+        QPoint botRight = m_selectedRegion->getBotRight();
+        botRight.setX(value);
+        m_selectedRegion->setBotRight(botRight);
+    }
+}
+void MainWindow::onSelectedRegionEndYSpinbox(int value)
+{
+    if (m_selectedRegion != NULL)
+    {
+        QPoint botRight = m_selectedRegion->getBotRight();
+        botRight.setY(value);
+        m_selectedRegion->setBotRight(botRight);
+    }
+}
+
+

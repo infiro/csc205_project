@@ -12,8 +12,10 @@
 // CRegion
 CRegion::CRegion(const QPoint &origin, const QPoint &end, const RGBColor &colour, QWidget * rubberbandWidget)
     :m_RubberBand(QRubberBand::Rectangle,rubberbandWidget)
+    ,m_ImageLabel(rubberbandWidget)
 {
     m_RGBColor  = colour;
+    m_ZLevel    = 0;
     m_origin    = QPoint(origin.x() - OFFSET_X, origin.y() - OFFSET_Y);
     m_endPoint  = QPoint(end.x()    - OFFSET_X, end.y()    - OFFSET_Y);
 
@@ -92,6 +94,26 @@ bool CRegion::containsPoint(QPoint point)
     return false;
 }
 
+//////////////////////////////////////////////////
+// Check if this pixel is inside this region
+bool CRegion::containsPixel(float xRatio, float yRatio)
+{
+    // Convert pixel postion to Mouse point position
+    int x = xRatio*m_ImageLabel->width();
+    int y = yRatio*m_ImageLabel->height();
+
+    // Check point
+    if( x < m_topRight.x() &&
+        x > m_topLeft.x() &&
+        y < m_botLeft.y() &&
+        y > m_topLeft.y())
+        return true;
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////
+// Move entire Region for a distance of dx,dy
 void CRegion::moveTo(int dx, int dy)
 {
     // set centre
@@ -115,4 +137,36 @@ void CRegion::moveTo(int dx, int dy)
 
     // Set rubberband
     m_RubberBand.setGeometry(QRect(m_topLeft, m_botRight));
+}
+
+////////////////////////////////////////////////
+// Reset topLeft of the Region
+void CRegion::setTopLeft (const QPoint& point)
+{
+    // Change TopLeft, BotLeft, TopRight
+    m_topLeft = point;
+    m_botLeft.setX(point.x());
+    m_topRight.setY(point.y());
+
+    // Change center, origin, endpoint
+    // todo
+
+    // Set RubberBand
+     m_RubberBand.setGeometry(QRect(m_topLeft, m_botRight));
+}
+
+////////////////////////////////////////////////
+// Reset botright of the Region
+void CRegion::setBotRight(const QPoint& point)
+{
+    // Change botRight, BotLeft, TopRight
+    m_botRight = point;
+    m_botLeft.setY(point.y());
+    m_topRight.setX(point.x());
+
+    // Change center, origin, endpoint
+    // todo
+
+    // Set RubberBand
+     m_RubberBand.setGeometry(QRect(m_topLeft, m_botRight));
 }

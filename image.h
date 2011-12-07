@@ -48,6 +48,7 @@ public:
     QRubberBand* rubberBand() {return &m_RubberBand;}
     void show(bool show);
     bool containsPoint(QPoint point);
+    bool containsPixel(float x, float y);
     void moveTo(int dx, int dy);
 
     const RGBColor& getColour()   const {return m_RGBColor;}
@@ -58,8 +59,13 @@ public:
     const QPoint&   getTopRight() const {return m_topRight;}
     const QPoint&   getOrigin()   const {return m_origin;}
     const QPoint&   getEndPoint() const {return m_endPoint;}
+
+    void setTopLeft (const QPoint& point);
+    void setBotRight(const QPoint& point);
+
 private:
     QRubberBand m_RubberBand;
+    QWidget* m_ImageLabel;
 
     QVector<float> m_rgFilters;
     int m_filterWidth;
@@ -81,6 +87,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 // Have all information about this image
+class MainWindow;
 class CImage
 {
 public:
@@ -89,6 +96,8 @@ public:
     ~CImage(){};
     void updateHistogram();
     bool load(QString filename);
+    bool save(QString filename);
+
     bool isNull() const {return m_OriginalImage.isNull();}
     QPixmap getOriginalPixmap()const {return QPixmap::fromImage(m_OriginalImage);}
     QPixmap getGrayPixmap()    const {return QPixmap::fromImage(m_GrayImage);}
@@ -108,6 +117,7 @@ public:
     void matchHistogram( QVector<float> refCDF);
 
     void applyFilter(const QVector<float> &rgFilter, int width, int height, bool redChannel, bool greenChannel, bool blueChannel);
+    void applyFilter(MainWindow* window);
     QRgb getColour(int i, int j, const QVector<float> &rgFilter, int width, int height);
 
     //Image width & height
