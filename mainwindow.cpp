@@ -452,6 +452,9 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     {
         if(m_selectedRegion == NULL)
         {
+            if(!insideInputImage(m_lastPos))
+                return;
+
             // Create new region
             CRegion* newRegion = new CRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
             m_rgRegions.push_back(newRegion);
@@ -660,4 +663,32 @@ void MainWindow::onSelectedRegionEndYSpinbox(int value)
     }
 }
 
+bool MainWindow::insideInputImage(const QPoint &point)
+{
+    QRect rect = InputImageLabel->rect();
 
+    // Check point
+    if( point.x() < rect.topRight().x()+ 20 &&
+        point.x() > rect.topLeft().x() &&
+        point.y() < rect.bottomLeft().y() + 40 &&
+        point.y() > rect.topLeft().y())
+        return true;
+
+    return false;
+}
+
+///////////////////////////////////////////////////////
+// todo: need to test
+bool MainWindow::insideOutputImage(const QPoint &point)
+{
+    QRect rect = OutputImageLabel->rect();
+
+    // Check point
+    if( point.x() < rect.topRight().x()+ 20 &&
+        point.x() > rect.topLeft().x() &&
+        point.y() < rect.bottomLeft().y() + 40 &&
+        point.y() > rect.topLeft().y())
+        return true;
+
+    return false;
+}

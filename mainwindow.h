@@ -72,6 +72,9 @@ private:
     void changedFilterGrid();
     void updateRegions();
 
+    bool insideInputImage(const QPoint& point);
+    bool insideOutputImage(const QPoint& point);
+
 // Attributes
 
     QWidget *centralWidget;
