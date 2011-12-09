@@ -118,6 +118,7 @@ public:
 
     void applyFilter(const QVector<float> &rgFilter, int width, int height, bool redChannel, bool greenChannel, bool blueChannel);
     void applyFilter(MainWindow* window);
+    void tiltShift(MainWindow* window, int target_z);
     QRgb getColour(int i, int j, const QVector<float> &rgFilter, int width, int height);
 
     //Image width & height

@@ -39,6 +39,7 @@ public:
     void mouseReleaseEvent(QMouseEvent *);
 
     FILTER getFilter(int z);
+    FILTER getTiltShiftFilter(int current_z, int target_z);
     QVector<CRegion*> getRegions(){return m_rgRegions;}
 
 private slots:
@@ -51,6 +52,7 @@ private slots:
     void onFilterWidthChanged(int);
     void onFilterHeightChanged(int);
     void onShowRegionChkbox(bool);
+    void onTiltShiftChkbox(bool);
 
     void onSelectedRegionLvlSpinbox(int);
     void onSelectedRegionStXSpinbox(int);
@@ -127,6 +129,7 @@ private:
 
     bool m_bNormalized;
     bool m_bShowRegion;
+    bool m_bTiltShift;
 
     //Regions
     QVector<CRegion*> m_rgRegions;

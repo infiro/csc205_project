@@ -187,6 +187,11 @@ void MainWindow::createFilterGrid()
     showRegionChkBox->setCheckState(Qt::Checked);
     connect(showRegionChkBox, SIGNAL(toggled(bool)), this, SLOT(onShowRegionChkbox(bool)));
     m_FilterLayout->addWidget(showRegionChkBox,1,4);
+
+    QCheckBox* tiltShiftChkBox = new QCheckBox("Tilt-Shift");
+    tiltShiftChkBox->setCheckState(Qt::Unchecked);
+    connect(tiltShiftChkBox, SIGNAL(toggled(bool)), this, SLOT(onTiltShiftChkbox(bool)));
+    m_FilterLayout->addWidget(tiltShiftChkBox,1,5);
 }
 
 /////////////////////////////////////////////////////////////////
@@ -403,19 +408,21 @@ void MainWindow::changedFilterGrid()
 //Mouse Event
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
-    if(event->button() == Qt::LeftButton)
-    {
-        m_firstPos = event->pos();
-        m_lastPos  = event->pos();
-
-        //Find selected region
-        m_selectedRegion = NULL;
-        for(int i=0; i<m_rgRegions.size(); i++)
+    if (!m_bTiltShift) {
+        if(event->button() == Qt::LeftButton)
         {
-            if(m_rgRegions[i]->containsPoint(m_firstPos))
+            m_firstPos = event->pos();
+            m_lastPos  = event->pos();
+
+            //Find selected region
+            m_selectedRegion = NULL;
+            for(int i=0; i<m_rgRegions.size(); i++)
             {
-                m_selectedRegion = m_rgRegions[i];
-                break;
+                if(m_rgRegions[i]->containsPoint(m_firstPos))
+                {
+                    m_selectedRegion = m_rgRegions[i];
+                    break;
+                }
             }
         }
     }
@@ -424,98 +431,130 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    if (event->buttons() & Qt::LeftButton)
-    {
-        if(m_selectedRegion!=NULL)
+    if (!m_bTiltShift) {
+        if (event->buttons() & Qt::LeftButton)
         {
-            // move selected region
-            int dx = event->pos().x() - m_lastPos.x();
-            int dy = event->pos().y() - m_lastPos.y();
-            m_selectedRegion->moveTo(dx,dy);
-            m_selectedRegion->show(m_bShowRegion);
+            if(m_selectedRegion!=NULL)
+            {
+                // move selected region
+                int dx = event->pos().x() - m_lastPos.x();
+                int dy = event->pos().y() - m_lastPos.y();
+                m_selectedRegion->moveTo(dx,dy);
+                m_selectedRegion->show(m_bShowRegion);
+            }
+            else // In draw mode
+            {
+                // Draw intermediate region
+                CRegion newRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
+                newRegion.show(m_bShowRegion);
+            }
         }
-        else // In draw mode
-        {
-            // Draw intermediate region
-            CRegion newRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
-            newRegion.show(m_bShowRegion);
-        }
-    }
 
-    m_lastPos = event->pos();
+        m_lastPos = event->pos();
+    }
 }
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
-    // Release to add new point
-    if (event->button()== Qt::LeftButton)
-    {
-        if(m_selectedRegion == NULL)
+    if (!m_bTiltShift) {
+        // Release to add new point
+        if (event->button()== Qt::LeftButton)
         {
-            if(!insideInputImage(m_lastPos))
-                return;
+            if(m_selectedRegion == NULL)
+            {
+                if(!insideInputImage(m_lastPos))
+                    return;
 
-            // Create new region
-            CRegion* newRegion = new CRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
-            m_rgRegions.push_back(newRegion);
-            m_selectedRegion = newRegion;
-        }
-        else
-        {
-            // move selected region
-            int dx = event->pos().x() - m_lastPos.x();
-            int dy = event->pos().y() - m_lastPos.y();
-            m_selectedRegion->moveTo(dx,dy);
-        }
-
-        //display the current selected region's start and end position
-        m_selectedRegionStX->setValue (m_selectedRegion->getTopLeft().x());
-        m_selectedRegionStY->setValue (m_selectedRegion->getTopLeft().y());
-        m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
-        m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
-        m_selectedRegionLvl->setValue (m_selectedRegion->Z_Level());
-    }
-    else // Right click to Delete the previous point
-    if(event->button() == Qt::RightButton)
-    {
-        // Delete last region
-        if(m_rgRegions.size() > 0)
-        {
-            if(m_selectedRegion == m_rgRegions[m_rgRegions.size() -1])
-                m_selectedRegion = NULL;
-
-            delete m_rgRegions[m_rgRegions.size() -1];
-            m_rgRegions.pop_back();
-        }
-
-        if(m_rgRegions.size() != 0)
-        {
-            //if the selected region is null
-            if (m_selectedRegion == NULL)
-                m_selectedRegion = m_rgRegions[m_rgRegions.size() -1];
+                // Create new region
+                CRegion* newRegion = new CRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
+                m_rgRegions.push_back(newRegion);
+                m_selectedRegion = newRegion;
+            }
+            else
+            {
+                // move selected region
+                int dx = event->pos().x() - m_lastPos.x();
+                int dy = event->pos().y() - m_lastPos.y();
+                m_selectedRegion->moveTo(dx,dy);
+            }
 
             //display the current selected region's start and end position
+            m_selectedRegionStX->setValue (m_selectedRegion->getTopLeft().x());
+            m_selectedRegionStY->setValue (m_selectedRegion->getTopLeft().y());
+            m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
+            m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
+            m_selectedRegionLvl->setValue (m_selectedRegion->Z_Level());
+        }
+        else // Right click to Delete the previous point
+        if(event->button() == Qt::RightButton)
+        {
+            // Delete last region
+            if(m_rgRegions.size() > 0)
+            {
+                if(m_selectedRegion == m_rgRegions[m_rgRegions.size() -1])
+                    m_selectedRegion = NULL;
+
+                delete m_rgRegions[m_rgRegions.size() -1];
+                m_rgRegions.pop_back();
+            }
+
+            if(m_rgRegions.size() != 0)
+            {
+                //if the selected region is null
+                if (m_selectedRegion == NULL)
+                    m_selectedRegion = m_rgRegions[m_rgRegions.size() -1];
+
+                //display the current selected region's start and end position
+                m_selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
+                m_selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
+                m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
+                m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
+                m_selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
+            }
+            else
+            {
+                //display the start and end position to 0
+                m_selectedRegionStX->setValue(0);
+                m_selectedRegionStY->setValue(0);
+                m_selectedRegionEndX->setValue(0);
+                m_selectedRegionEndY->setValue(0);
+                m_selectedRegionLvl->setValue(0);
+            }
+        }
+
+        updateRegions();
+        m_lastPos = event->pos();
+    } else {
+        int target = 0;
+        QPoint selectedPoint;
+        selectedPoint = event->pos();
+        if(m_rgRegions.size() != 0) {
+            for(int k=0; k< m_rgRegions.size(); k++)
+            {
+                if(m_rgRegions[k]->containsPoint(selectedPoint))
+                {
+                    target = m_rgRegions[k]->Z_Level();
+                    m_selectedRegion = m_rgRegions[k];
+                    break;
+                }
+            }
             m_selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
             m_selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
             m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
             m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
             m_selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
-        }
-        else
-        {
-            //display the start and end position to 0
-            m_selectedRegionStX->setValue(0);
-            m_selectedRegionStY->setValue(0);
-            m_selectedRegionEndX->setValue(0);
-            m_selectedRegionEndY->setValue(0);
-            m_selectedRegionLvl->setValue(0);
-        }
-    }
 
-    updateRegions();
-    m_lastPos = event->pos();
+
+            // Apply filter
+            m_OutputImage.tiltShift(this, target);
+            OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
+            OutputImageLabel->adjustSize();
+
+            // update histogram
+            m_OutputImage.updateHistogram();
+         }
+     }
 }
-
 
 
 //////////////////////////////////////////////
@@ -586,6 +625,85 @@ MainWindow::FILTER MainWindow::getFilter(int z)
     return myFilter;
 }
 
+//////////////////////////////////////////
+//return the interactive filter
+MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z)
+{
+    FILTER myFilter;
+
+    if (current_z == target_z) {
+        if (current_z >= 0) {
+            myFilter.width         = current_z;
+            myFilter.height        = current_z;
+            myFilter.recursiveTime = current_z;
+        } else {
+            myFilter.width         = (-1) * current_z;
+            myFilter.height        = (-1) * current_z;
+            myFilter.recursiveTime = (-1) * current_z;
+        }
+
+        // set up filter
+        float filterSize = myFilter.width*myFilter.height*1.0f;
+        float midPoint = filterSize + filterSize - 1;
+        int midPointIndex;
+
+        //If Height is even, set the mid pixel to be the previous one
+        if(myFilter.height%2 == 0)
+            midPointIndex = filterSize/2 -1;
+        else
+            midPointIndex = filterSize/2;
+
+        for(int i =0; i< filterSize; i++)
+        {
+            (i == midPointIndex)?myFilter.rgFilter.push_back(midPoint*1.0f):myFilter.rgFilter.push_back(-1.0f);
+        }
+    } else {
+        if (current_z > 0) {
+            if (current_z > target_z){
+                myFilter.width         = current_z - target_z;
+                myFilter.height        = current_z - target_z;
+            } else {
+                myFilter.width         = target_z - current_z;
+                myFilter.height        = target_z - current_z;
+            }
+            myFilter.recursiveTime = (-1) * current_z;
+        } else {
+            if (current_z > target_z){
+                myFilter.width         = current_z - target_z;
+                myFilter.height        = current_z - target_z;
+            } else {
+                myFilter.width         = target_z - current_z;
+                myFilter.height        = target_z - current_z;
+            }
+            myFilter.recursiveTime = current_z;
+        }
+
+        float filterSize = myFilter.width*myFilter.height*1.0f;
+        for(int i =0; i< filterSize; i++)
+        {
+            myFilter.rgFilter.push_back(1.0f);
+        }
+    }
+
+    // Normalize filter
+    float weight = 0.0f;
+    for(int i =0; i< myFilter.rgFilter.size(); i++)
+    {
+         weight += myFilter.rgFilter[i];
+    }
+
+    if(weight == 0.0f)
+        weight = 1.0f;
+
+    for(int i =0; i< myFilter.rgFilter.size(); i++)
+    {
+         myFilter.rgFilter[i] /= weight;
+    }
+
+    return myFilter;
+}
+
+
 
 //////////////////////////////////////////
 // Region checkbox changed
@@ -616,6 +734,13 @@ void MainWindow::onShowRegionChkbox(bool state)
 {
     m_bShowRegion = state;
     updateRegions();
+}
+
+//////////////////////////////////////////////////////
+// control chkbox for showing the interactive effect
+void MainWindow::onTiltShiftChkbox(bool state)
+{
+    m_bTiltShift = state;
 }
 
 void MainWindow::onSelectedRegionLvlSpinbox(int value)

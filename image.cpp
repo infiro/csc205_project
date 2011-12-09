@@ -343,6 +343,55 @@ void CImage::applyFilter(MainWindow* window)
 }
 
 /////////////////////////////////////////////////////////////////////
+//tilt-shift effect
+void CImage::tiltShift(MainWindow* window, int target_z)
+{
+    if(m_OriginalImage.isNull())
+        return;
+
+    m_GrayImage = QImage(m_OriginalImage);
+
+    // get color valur for each pixel
+    float width  = m_GrayImage.width();
+    float height = m_GrayImage.height();
+    for (float i = 0; i < width; ++i)
+    {
+        for (float j = 0; j < height; ++j)
+        {
+            // Find Region of this pixel
+            QVector<CRegion*> rgRegions = window->getRegions();
+            CRegion* region = NULL;
+            for(int k=0; k< rgRegions.size(); k++)
+            {
+                float xRatio = i*1.0f/width;
+                float yRatio = j*1.0f/height;
+
+                if(rgRegions[k]->containsPixel(xRatio,yRatio))
+                {
+                    region = rgRegions[k];
+                    break;
+                }
+            }
+            // Check if found
+            if(region!= NULL)
+            {
+                int z_value = region->Z_Level();
+                MainWindow::FILTER filter = window->getTiltShiftFilter(z_value, target_z);
+                if(filter.rgFilter.size()!=0)
+                {
+                    QRgb col = getColour(i,j,filter.rgFilter,filter.width,filter.height);
+                    m_GrayImage.setPixel(i, j, col);
+                }
+            }
+        }
+    }
+
+    // Recalculate Histograms
+    CalculateHistogram();
+
+}
+
+/////////////////////////////////////////////////////////////////////
 // Get colour out from the filter
 QRgb CImage::getColour(int x, int y, const QVector<float> &rgFilter, int filterWidth, int filterHeight)
 {
