@@ -45,6 +45,8 @@ public:
 private slots:
     void openFile();
     void saveFile();
+    void loadFileAndData();
+    void saveFileAndData();
     void onResetBtn();
     void onSharpenBtn();
     void onApplyFilterBtn();
@@ -111,6 +113,8 @@ private:
 
     QAction *openFileAct;
     QAction *saveFileAct;
+    QAction *loadFileAndDataAct;
+    QAction *saveFileAndDataAct;
     QAction *exitAct;
 
     QString filename;

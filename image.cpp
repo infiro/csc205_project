@@ -255,12 +255,6 @@ void CImage::setOriginalImage(const QImage& image)
     m_OriginalImage = QImage(image);
 }
 
-//////////////////////////////////////////
-QImage CImage::getOriginalImage()
-{
-    return m_OriginalImage;
-}
-
 /////////////////////////////////////////
 // Blur image
 void CImage::applyFilter(const QVector<float> &rgFilter, int FilterWidth, int FilterHeight, bool redChannel, bool greenChannel, bool blueChannel)

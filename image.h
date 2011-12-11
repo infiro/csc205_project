@@ -105,7 +105,7 @@ public:
 
     void overrideOriginalImage();
     void setOriginalImage(const QImage& image);
-    QImage getOriginalImage();
+    const QImage& getOriginalImage() const {return m_OriginalImage;}
 
     // Histogram manipulation
     void resetHistogram();

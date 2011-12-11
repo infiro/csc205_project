@@ -24,17 +24,55 @@ QDataStream & operator << ( QDataStream & out, const CRegion & region)
 
 QDataStream & operator >> ( QDataStream & in, CRegion & region )
 {
-    /*
+    QPoint i_center;
+    QPoint i_origin;
+    QPoint i_endPoint;
+    int z_level;
+    QPoint i_topLeft;
+    QPoint i_topRight;
+    QPoint i_botLeft;
+    QPoint i_botRight;
 
-    in >> listSize;
+    in >> i_center
+       >> i_origin
+       >> i_endPoint
+       >> z_level
+       >> i_topLeft
+       >> i_topRight
+       >> i_botLeft
+       >> i_botRight;
 
-    for (int i = 0; i < listSize; i++) {
-        CRegion* region;
-        in >> region;
-        m_rgRegions.push_back(region);
-    }
+    region.center(i_center);
+    region.origin(i_origin);
+    region.endpoint(i_endPoint);
+    region.Z_Level(z_level);
+    region.topleft(i_topLeft);
+    region.topright(i_topRight);
+    region.botleft(i_botLeft);
+    region.botright(i_botRight);
 
-    return (in);*/
+    return (in);
+}
+
+QDataStream & operator << ( QDataStream & out , const CImage & image)
+{
+    out << image.getName()
+        << image.getOriginalImage();
+
+    return (out);
+}
+
+QDataStream & operator >>( QDataStream & in , CImage & image)
+{
+    QString fileName;
+    QImage inputImage;
+
+    in >> fileName
+       >> inputImage;
+
+    image.setOriginalImage(inputImage);
+
+    return (in);
 }
 
 MainWindow::MainWindow()
@@ -235,10 +273,20 @@ void MainWindow::createActions()
     openFileAct->setShortcut(tr("Ctrl+O"));
     connect(openFileAct, SIGNAL(triggered()), this, SLOT(openFile()));
 
-    // save file
+    // save result image file
     saveFileAct = new QAction(tr("&Save Output Image File"), this);
     saveFileAct->setShortcut(tr("Ctrl+I"));
     connect(saveFileAct, SIGNAL(triggered()), this, SLOT(saveFile()));
+
+    //load input file with data
+    loadFileAndDataAct = new QAction(tr("&Load Imgae File With Data"), this);
+    loadFileAndDataAct->setShortcut(tr("Ctrl+l"));
+    connect(loadFileAndDataAct, SIGNAL(triggered()), this, SLOT(loadFileAndData()));
+
+    //save input file with data
+    saveFileAndDataAct = new QAction(tr("&Save Image File With Data"), this);
+    saveFileAndDataAct->setShortcut(tr("Ctrl+m"));
+    connect(saveFileAndDataAct, SIGNAL(triggered()), this, SLOT(saveFileAndData()));
 
     // Exit menu
     exitAct = new QAction(tr("E&xit"), this);
@@ -253,6 +301,8 @@ void MainWindow::createMenus()
     fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(openFileAct);
     fileMenu->addAction(saveFileAct);
+    fileMenu->addAction(loadFileAndDataAct);
+    fileMenu->addAction(saveFileAndDataAct);
 
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
@@ -303,7 +353,21 @@ void MainWindow::saveFile()
     }
 }
 
-////////////////////////////////////////////
+////////////////////////////////////////////////////////
+// load the input image and its data
+void MainWindow::loadFileAndData()
+{
+
+}
+
+////////////////////////////////////////////////////////
+// save the input image and its data
+void MainWindow::saveFileAndData()
+{
+
+}
+
+////////////////////////////////////////////////////////
 // Selected Regions' X, Y, gray&sharpen Level spinbox
 void MainWindow::createSpinBox()
 {
