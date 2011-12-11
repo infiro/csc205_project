@@ -39,7 +39,7 @@ public:
     void mouseReleaseEvent(QMouseEvent *);
 
     FILTER getFilter(int z);
-    FILTER getTiltShiftFilter(int current_z, int target_z);
+    FILTER getTiltShiftFilter(int current_z, int target_z, int distance);
     QVector<CRegion*> getRegions(){return m_rgRegions;}
 
 private slots:

@@ -6,6 +6,37 @@
 #include "mainwindow.h"
 #include "histogram.h"
 
+///////////////////////////////////////////////
+// Serialization
+QDataStream & operator << ( QDataStream & out, const CRegion & region)
+{
+    out << region.getCenter()
+        << region.getOrigin()
+        << region.getEndPoint()
+        << region.Z_Level()
+        << region.getTopLeft()
+        << region.getTopRight()
+        << region.getBotLeft()
+        << region.getBotRight();
+
+    return (out);
+}
+
+QDataStream & operator >> ( QDataStream & in, CRegion & region )
+{
+    /*
+
+    in >> listSize;
+
+    for (int i = 0; i < listSize; i++) {
+        CRegion* region;
+        in >> region;
+        m_rgRegions.push_back(region);
+    }
+
+    return (in);*/
+}
+
 MainWindow::MainWindow()
 {
     ///////////////////////////////////////////
@@ -445,7 +476,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
             else // In draw mode
             {
                 // Draw intermediate region
-                CRegion newRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
+                CRegion newRegion(m_firstPos, m_lastPos,InputImageLabel);
                 newRegion.show(m_bShowRegion);
             }
         }
@@ -466,7 +497,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
                     return;
 
                 // Create new region
-                CRegion* newRegion = new CRegion(m_firstPos, m_lastPos, RGBColor(1.0f,1.0f,1.0f),InputImageLabel);
+                CRegion* newRegion = new CRegion(m_firstPos, m_lastPos,InputImageLabel);
                 m_rgRegions.push_back(newRegion);
                 m_selectedRegion = newRegion;
             }
@@ -538,6 +569,8 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
                     break;
                 }
             }
+
+            //upload the data information for the selected region
             m_selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
             m_selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
             m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
@@ -545,8 +578,8 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             m_selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
 
 
-            // Apply filter
-            m_OutputImage.tiltShift(this, target);
+            // Apply tilt-shift filter
+            m_OutputImage.tiltShift(this, target, selectedPoint);
             OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
             OutputImageLabel->adjustSize();
 
@@ -627,20 +660,85 @@ MainWindow::FILTER MainWindow::getFilter(int z)
 
 //////////////////////////////////////////
 //return the interactive filter
-MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z)
+MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z, int distance)
 {
     FILTER myFilter;
+    if (current_z == target_z) {
+        if (current_z < 0)
+            current_z = (-1) * current_z;
+
+        if ( distance <= int((0.2)*m_InputImage.imageWidth())) {
+            current_z = 0;
+        }else {
+            current_z = 2;
+        }
+    } else {
+        if (current_z > 0 && target_z > 0){
+            if (current_z > target_z) {
+                current_z = current_z - target_z;
+            } else {
+                current_z = target_z - current_z;
+            }
+        } else if (current_z > 0 && target_z < 0) {
+            current_z = current_z - target_z;
+        } else if (current_z < 0 && target_z > 0) {
+            current_z = target_z - current_z;
+        } else {
+            if (current_z > target_z) {
+                current_z = current_z - target_z;
+            }else{
+                current_z = target_z - current_z;
+            }
+        }
+
+    }
+
+
+    myFilter.width         = current_z;
+    myFilter.height        = current_z;
+    myFilter.recursiveTime = current_z;
+
+    float filterSize = myFilter.width*myFilter.height*1.0f;
+    for(int i =0; i< filterSize; i++)
+    {
+        myFilter.rgFilter.push_back(1.0f);
+    }
+
+    // Normalize filter
+    float weight = 0.0f;
+    for(int i =0; i< myFilter.rgFilter.size(); i++)
+    {
+         weight += myFilter.rgFilter[i];
+    }
+
+    if(weight == 0.0f)
+        weight = 1.0f;
+
+    for(int i =0; i< myFilter.rgFilter.size(); i++)
+    {
+         myFilter.rgFilter[i] /= weight;
+    }
+
+    return myFilter;
+   /* FILTER myFilter;
 
     if (current_z == target_z) {
-        if (current_z >= 0) {
-            myFilter.width         = current_z;
-            myFilter.height        = current_z;
-            myFilter.recursiveTime = current_z;
-        } else {
-            myFilter.width         = (-1) * current_z;
-            myFilter.height        = (-1) * current_z;
-            myFilter.recursiveTime = (-1) * current_z;
+        if (current_z < 0)
+            current_z = (-1) * current_z;
+
+        if (distance > int((0.2)*m_InputImage.imageWidth())
+                  && distance <= int((0.3)*m_InputImage.imageWidth())) {
+            current_z --;
+        }else if (distance > int((0.3)*m_InputImage.imageWidth())
+                  && distance <= int((0.4)*m_InputImage.imageWidth())) {
+            current_z = current_z - 2;
+        }else {
+            current_z = current_z - 3;
         }
+
+        myFilter.width         = current_z;
+        myFilter.height        = current_z;
+        myFilter.recursiveTime = current_z;
 
         // set up filter
         float filterSize = myFilter.width*myFilter.height*1.0f;
@@ -700,7 +798,7 @@ MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z)
          myFilter.rgFilter[i] /= weight;
     }
 
-    return myFilter;
+    return myFilter;*/
 }
 
 

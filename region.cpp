@@ -10,11 +10,10 @@
 
 /////////////////////////////////////////
 // CRegion
-CRegion::CRegion(const QPoint &origin, const QPoint &end, const RGBColor &colour, QWidget * rubberbandWidget)
+CRegion::CRegion(const QPoint &origin, const QPoint &end, QWidget * rubberbandWidget)
     :m_RubberBand(QRubberBand::Rectangle,rubberbandWidget)
     ,m_ImageLabel(rubberbandWidget)
 {
-    m_RGBColor  = colour;
     m_ZLevel    = 0;
     m_origin    = QPoint(origin.x() - OFFSET_X, origin.y() - OFFSET_Y);
     m_endPoint  = QPoint(end.x()    - OFFSET_X, end.y()    - OFFSET_Y);
@@ -61,19 +60,6 @@ CRegion::CRegion(const QPoint &origin, const QPoint &end, const RGBColor &colour
     m_RubberBand.setGeometry(QRect(m_topLeft, m_botRight));
  }
 
-void CRegion::filter(const QVector<float> &filter, int width, int height)
-{
-    m_filterWidth = width;
-    m_filterHeight = height;
-
-    m_rgFilters.clear();
-
-    for(int i=0; i< filter.size(); i++)
-    {
-        m_rgFilters.push_back(filter.at(i));
-    }
-}
-
 void CRegion::show(bool show)
 {
     (show)? m_RubberBand.show():m_RubberBand.hide();
@@ -110,6 +96,23 @@ bool CRegion::containsPixel(float xRatio, float yRatio)
         return true;
 
     return false;
+}
+
+//////////////////////////////////////////////////////
+//convert the pixel position into the mouse position
+QPoint CRegion::convertToMouseP(float xRatio, float yRatio)
+{
+    QPoint mousePosition;
+
+    //get the x, y value for the mouse position
+    int mouse_x = xRatio*m_ImageLabel->width();
+    int mouse_y = yRatio*m_ImageLabel->height();
+
+    mousePosition.setX(mouse_x);
+    mousePosition.setY(mouse_y);
+
+    return mousePosition;
+
 }
 
 ///////////////////////////////////////////////////////////

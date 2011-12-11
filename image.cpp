@@ -344,7 +344,7 @@ void CImage::applyFilter(MainWindow* window)
 
 /////////////////////////////////////////////////////////////////////
 //tilt-shift effect
-void CImage::tiltShift(MainWindow* window, int target_z)
+void CImage::tiltShift(MainWindow* window, int target_z, QPoint selectedPosition)
 {
     if(m_OriginalImage.isNull())
         return;
@@ -361,22 +361,37 @@ void CImage::tiltShift(MainWindow* window, int target_z)
             // Find Region of this pixel
             QVector<CRegion*> rgRegions = window->getRegions();
             CRegion* region = NULL;
+            QPoint pixelPosOnLabel;
+            float xRatio = 0.0f;
+            float yRatio = 0.0f;
+            int  distance = 0;
+
+            //find which region contains the pixel
             for(int k=0; k< rgRegions.size(); k++)
             {
-                float xRatio = i*1.0f/width;
-                float yRatio = j*1.0f/height;
+                xRatio = i*1.0f/width;
+                yRatio = j*1.0f/height;
 
                 if(rgRegions[k]->containsPixel(xRatio,yRatio))
                 {
                     region = rgRegions[k];
+
+                    //convert the pixel position to the mouse position
+                    pixelPosOnLabel = region->convertToMouseP(xRatio, yRatio);
+
+                    //calculate the distance between pixelPos on label and selectedPos
+                    distance = (int) sqrt(pow((pixelPosOnLabel.x() - selectedPosition.x()), 2)
+                                    + pow((pixelPosOnLabel.y() - selectedPosition.y()), 2));
+
                     break;
                 }
             }
+
             // Check if found
             if(region!= NULL)
             {
                 int z_value = region->Z_Level();
-                MainWindow::FILTER filter = window->getTiltShiftFilter(z_value, target_z);
+                MainWindow::FILTER filter = window->getTiltShiftFilter(z_value, target_z, distance);
                 if(filter.rgFilter.size()!=0)
                 {
                     QRgb col = getColour(i,j,filter.rgFilter,filter.width,filter.height);

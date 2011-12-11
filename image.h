@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QVector>
 #include <QtGui>
+#include "math.h"
 #include "histogram.h"
 
 
@@ -30,19 +31,10 @@ class CRegion
 {
 public:
     CRegion():m_RubberBand(QRubberBand::Rectangle){}
-    CRegion(const QPoint &origin, const QPoint &end, const RGBColor &colour, QWidget * rubberbandWidget);
+    CRegion(const QPoint &origin, const QPoint &end, QWidget * rubberbandWidget);
     ~CRegion(){}
 
-    const QVector<float>& filter(){return m_rgFilters;}
-    void filter(const QVector<float> &filter, int width, int height);
-
-    int filterWidth()   {return m_filterWidth;}
-    int filterHeight()  {return m_filterHeight;}
-
-    void filterWidth (int width){m_filterWidth = width;}
-    void filterHeight(int height){m_filterHeight = height;}
-
-    int  Z_Level() {return m_ZLevel;}
+    int  Z_Level() const {return m_ZLevel;}
     void Z_Level( int ZLevel){m_ZLevel = ZLevel;}
 
     QRubberBand* rubberBand() {return &m_RubberBand;}
@@ -51,7 +43,8 @@ public:
     bool containsPixel(float x, float y);
     void moveTo(int dx, int dy);
 
-    const RGBColor& getColour()   const {return m_RGBColor;}
+    QPoint convertToMouseP(float x, float y);
+
     const QPoint&   getCenter()   const {return m_center;}
     const QPoint&   getTopLeft()  const {return m_topLeft;}
     const QPoint&   getBotRight() const {return m_botRight;}
@@ -60,6 +53,14 @@ public:
     const QPoint&   getOrigin()   const {return m_origin;}
     const QPoint&   getEndPoint() const {return m_endPoint;}
 
+    void center(const QPoint& center) {m_center = center;}
+    void topleft(const QPoint& topLeft) {m_topLeft = topLeft;}
+    void topright(const QPoint& topRight) {m_topRight = topRight;}
+    void botleft(const QPoint& botLeft) {m_botLeft = botLeft;}
+    void botright(const QPoint& botRight) {m_botRight = botRight;}
+    void origin(const QPoint& origin) {m_origin = origin;}
+    void endpoint(const QPoint& endPoint) {m_endPoint = endPoint;}
+
     void setTopLeft (const QPoint& point);
     void setBotRight(const QPoint& point);
 
@@ -67,11 +68,6 @@ private:
     QRubberBand m_RubberBand;
     QWidget* m_ImageLabel;
 
-    QVector<float> m_rgFilters;
-    int m_filterWidth;
-    int m_filterHeight;
-
-    RGBColor m_RGBColor;
     QPoint m_center;
     QPoint m_origin;
     QPoint m_endPoint;
@@ -118,7 +114,7 @@ public:
 
     void applyFilter(const QVector<float> &rgFilter, int width, int height, bool redChannel, bool greenChannel, bool blueChannel);
     void applyFilter(MainWindow* window);
-    void tiltShift(MainWindow* window, int target_z);
+    void tiltShift(MainWindow* window, int target_z, QPoint selectedPosition);
     QRgb getColour(int i, int j, const QVector<float> &rgFilter, int width, int height);
 
     //Image width & height
