@@ -45,8 +45,8 @@ public:
 private slots:
     void openFile();
     void saveFile();
-    void loadFileAndData();
-    void saveFileAndData();
+    void loadData();
+    void saveData();
     void onResetBtn();
     void onSharpenBtn();
     void onApplyFilterBtn();
@@ -97,6 +97,8 @@ private:
     QPushButton *SharpenBtn;
 
     QCheckBox   *NormalizedChkbox;
+    QCheckBox   *showRegionChkBox;
+    QCheckBox   *tiltShiftChkBox;
 
     QSpinBox    *FilterWidth;
     QSpinBox    *FilterHeight;
@@ -113,8 +115,8 @@ private:
 
     QAction *openFileAct;
     QAction *saveFileAct;
-    QAction *loadFileAndDataAct;
-    QAction *saveFileAndDataAct;
+    QAction *loadDataAct;
+    QAction *saveDataAct;
     QAction *exitAct;
 
     QString filename;

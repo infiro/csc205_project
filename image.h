@@ -53,7 +53,7 @@ public:
     const QPoint&   getOrigin()   const {return m_origin;}
     const QPoint&   getEndPoint() const {return m_endPoint;}
 
-    void center(const QPoint& center) {m_center = center;}
+    void center( QPoint center) {m_center =QPoint(center.x(), center.y());}
     void topleft(const QPoint& topLeft) {m_topLeft = topLeft;}
     void topright(const QPoint& topRight) {m_topRight = topRight;}
     void botleft(const QPoint& botLeft) {m_botLeft = botLeft;}
