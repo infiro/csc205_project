@@ -60,6 +60,23 @@ bool CImage::load(QString fileName)
 }
 
 //////////////////////////////////////////////////
+// load Image from serialization
+bool CImage::load(const QImage& inputImage, QString filename)
+{
+    // Load file
+    m_OriginalImage = QImage(inputImage);
+
+    // Initialize image
+    CalculateGrayScale();
+    CalculateHistogram();
+
+    m_fileName = filename;
+    m_Histogram.updateGL();
+
+    return true;
+}
+
+//////////////////////////////////////////////////
 // save image
 bool CImage::save(QString fileName)
 {

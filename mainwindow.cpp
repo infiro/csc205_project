@@ -70,7 +70,7 @@ QDataStream & operator >>( QDataStream & in , CImage & image)
     in >> fileName
        >> inputImage;
 
-    image.setOriginalImage(inputImage);
+    image.load(inputImage, fileName);
 
     return (in);
 }
@@ -113,6 +113,9 @@ MainWindow::MainWindow()
     centralWidget->setLayout(centralLayout);
     setWindowTitle(tr("Triet & Ding - CSC 205 Project"));
     resize(800, 600);
+
+    m_bShowRegion = true;
+    m_bTiltShift = false;
 }
 
 MainWindow::~MainWindow()
@@ -239,15 +242,15 @@ void MainWindow::createFilterGrid()
     m_FilterLayout = new QGridLayout;
 
     // Radio buttons
-    QRadioButton* editModeRbtn = new QRadioButton("Region Edit mode");
-    editModeRbtn->setChecked(true);
-    connect(editModeRbtn, SIGNAL(toggled(bool)), this, SLOT(onEditModeRadio(bool)));
-    m_FilterLayout->addWidget(editModeRbtn,1,1,Qt::AlignCenter);
+    m_editModeBtn = new QRadioButton("Region Edit mode");
+    m_editModeBtn->setChecked(true);
+    connect(m_editModeBtn, SIGNAL(toggled(bool)), this, SLOT(onEditModeRadio(bool)));
+    m_FilterLayout->addWidget(m_editModeBtn,1,1,Qt::AlignCenter);
 
-    QRadioButton* tiltShiftRbtn = new QRadioButton("Interactive mode");
-    tiltShiftRbtn->setChecked(false);
-    connect(tiltShiftRbtn, SIGNAL(toggled(bool)), this, SLOT(onInteractiveRadio(bool)));
-    m_FilterLayout->addWidget(tiltShiftRbtn,2,1, Qt::AlignCenter);
+    m_tiltShiftRbtn = new QRadioButton("Interactive mode");
+    m_tiltShiftRbtn->setChecked(false);
+    connect(m_tiltShiftRbtn, SIGNAL(toggled(bool)), this, SLOT(onInteractiveRadio(bool)));
+    m_FilterLayout->addWidget(m_tiltShiftRbtn,2,1, Qt::AlignCenter);
 }
 
 /////////////////////////////////////////////////////////////////
@@ -255,25 +258,25 @@ void MainWindow::createFilterGrid()
 // Action == menu
 void MainWindow::createActions()
 {
-    // Open file
-    openFileAct = new QAction(tr("&Open Input Image File"), this);
-    openFileAct->setShortcut(tr("Ctrl+O"));
-    connect(openFileAct, SIGNAL(triggered()), this, SLOT(openFile()));
-
-    // save result image file
-    saveFileAct = new QAction(tr("&Save Output Image File"), this);
-    saveFileAct->setShortcut(tr("Ctrl+I"));
-    connect(saveFileAct, SIGNAL(triggered()), this, SLOT(saveFile()));
-
     //load input file with data
-    loadDataAct = new QAction(tr("&Load Imgae's Data"), this);
+    loadDataAct = new QAction(tr("&Load file"), this);
     loadDataAct->setShortcut(tr("Ctrl+l"));
     connect(loadDataAct, SIGNAL(triggered()), this, SLOT(loadData()));
 
     //save input file with data
-    saveDataAct = new QAction(tr("&Save Image's Data"), this);
+    saveDataAct = new QAction(tr("&Save file"), this);
     saveDataAct->setShortcut(tr("Ctrl+m"));
     connect(saveDataAct, SIGNAL(triggered()), this, SLOT(saveData()));
+
+    // Open file
+    openFileAct = new QAction(tr("&Import Image"), this);
+    openFileAct->setShortcut(tr("Ctrl+O"));
+    connect(openFileAct, SIGNAL(triggered()), this, SLOT(openFile()));
+
+    // save result image file
+    saveFileAct = new QAction(tr("&Export Image"), this);
+    saveFileAct->setShortcut(tr("Ctrl+I"));
+    connect(saveFileAct, SIGNAL(triggered()), this, SLOT(saveFile()));
 
     // Exit menu
     exitAct = new QAction(tr("E&xit"), this);
@@ -286,11 +289,11 @@ void MainWindow::createActions()
 void MainWindow::createMenus()
 {
     fileMenu = menuBar()->addMenu(tr("&File"));
-    fileMenu->addAction(openFileAct);
-    fileMenu->addAction(saveFileAct);
     fileMenu->addAction(loadDataAct);
     fileMenu->addAction(saveDataAct);
-
+    fileMenu->addSeparator();
+    fileMenu->addAction(openFileAct);
+    fileMenu->addAction(saveFileAct);
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
 }
@@ -379,12 +382,6 @@ void MainWindow::loadData()
              m_selectedRegionEndX->setValue(0);
              m_selectedRegionEndY->setValue(0);
              m_selectedRegionLvl->setValue(0);
-
-             //check the checkbox
-             if (!m_bShowRegion)
-                 m_showRegionChkbox->setCheckState(Qt::Checked);
-
-             updateRegions();
          }
 
          //reset the region vector
@@ -401,9 +398,27 @@ void MainWindow::loadData()
              m_rgRegions.push_back(newRegion);
          }
 
-         //shows up the regions on imagelabel
+         // Load the input and output image
+         in >> m_InputImage;
+         in >> m_OutputImage;
+
+         //Hide regions show interative mode
+         m_bShowRegion = false;
+         m_bTiltShift  = true;
+         m_showRegionChkbox->setChecked(false);
+         m_tiltShiftRbtn->setChecked(true);
+         m_editModeBtn->setChecked(false);
          updateRegions();
 
+         // Update image
+         OutputImageLabel->setPixmap(m_OutputImage.getOriginalPixmap());
+         OutputImageLabel->adjustSize();
+         InputImageLabel->setPixmap(m_InputImage.getOriginalPixmap());
+         InputImageLabel->adjustSize();
+
+         // update histogram
+         m_OutputImage.updateHistogram();
+         m_InputImage.updateHistogram();
      }
 }
 
@@ -438,6 +453,9 @@ void MainWindow::saveData()
              out<< *m_rgRegions[i];
          }
 
+         // Save Input image
+         out<< m_InputImage;
+         out<< m_OutputImage;
      }
 }
 
@@ -651,7 +669,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             selectedPoint = event->pos();
 
             // Only apply if it is inside Image label 1
-            if(!insideInputImage(m_lastPos))
+            if(!insideInputImage(event->pos()))
                 return;
 
             if(m_rgRegions.size() != 0)

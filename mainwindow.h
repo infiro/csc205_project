@@ -109,6 +109,9 @@ private:
     QAction *saveDataAct;
     QAction *exitAct;
 
+    QRadioButton* m_editModeBtn;
+    QRadioButton* m_tiltShiftRbtn;
+
     QString filename;
 
     CImage m_InputImage;
