@@ -86,6 +86,12 @@ MainWindow::MainWindow()
     createActions();
     createMenus();
 
+    //fileDialog box for image path
+    fileDialog =new QFileDialog(this,
+                                tr("Select the image"),
+                                "",
+                                tr("Images (*.data)"));
+
     // Set Layout for Image
     createImageArea();
     centralLayout->addWidget(InputImageArea , 1,1);
@@ -275,6 +281,21 @@ void MainWindow::createActions()
     saveDataAct->setShortcut(tr("Ctrl+m"));
     connect(saveDataAct, SIGNAL(triggered()), this, SLOT(saveData()));
 
+    //choose image path
+    indexPath = new QAction(tr("&Choose Path"), this);
+    indexPath->setShortcut(tr("Ctrl+p"));
+    connect(indexPath, SIGNAL(triggered()), this, SLOT(showImage()));
+
+    //turn to next image
+    nextImage = new QAction(tr("&Display Next Image"), this);
+    nextImage->setShortcut(tr("Ctrl+d"));
+    connect(nextImage, SIGNAL(triggered()), this, SLOT(turnToNext()));
+
+    //turn to pervous image
+    pervImage = new QAction(tr("&Display Pervous Image"), this);
+    pervImage->setShortcut(tr("Ctrl+a"));
+    connect(pervImage, SIGNAL(triggered()), this, SLOT(turnToPrev()));
+
     // Exit menu
     exitAct = new QAction(tr("E&xit"), this);
     exitAct->setShortcuts(QKeySequence::Close);
@@ -290,6 +311,11 @@ void MainWindow::createMenus()
     fileMenu->addAction(saveFileAct);
     fileMenu->addAction(loadDataAct);
     fileMenu->addAction(saveDataAct);
+
+    fileMenu = menuBar()->addMenu(tr("&Image Gallery"));
+    fileMenu->addAction(indexPath);
+    fileMenu->addAction(nextImage);
+    fileMenu->addAction(pervImage);
 
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
@@ -441,6 +467,232 @@ void MainWindow::saveData()
      }
 }
 
+////////////////////////////////////////////
+// choose the image path
+void MainWindow::showImage()
+{
+
+    fileDialog->show();
+
+    connect(fileDialog, SIGNAL(fileSelected(QString)),
+            this, SLOT(dirChanged(QString)));
+
+}
+
+////////////////////////////////////////////
+// turn to the next image
+void MainWindow::turnToNext()
+{
+    if (iterator+1 == list.end())
+        iterator = list.begin();
+    ++iterator;
+
+    QFile file(*iterator);
+
+    if ( !file.open(QIODevice::WriteOnly))
+    {
+        QMessageBox::information(this, tr("Unable to save file"), file.errorString());
+        return;
+    }
+
+    QDataStream in (&file);
+    in.setVersion(QDataStream::Qt_4_5);
+
+    //clear the old region vector
+    if (!m_rgRegions.isEmpty())
+    {
+        for(int i=0; i< m_rgRegions.size(); i++)
+        {
+            if(m_rgRegions[i]!= NULL)
+                delete m_rgRegions[i];
+        }
+        m_rgRegions.clear();
+        m_selectedRegion = NULL;
+
+        m_selectedRegionStX->setValue(0);
+        m_selectedRegionStY->setValue(0);
+        m_selectedRegionEndX->setValue(0);
+        m_selectedRegionEndY->setValue(0);
+        m_selectedRegionLvl->setValue(0);
+
+        //check the checkbox
+        if (!m_bShowRegion)
+            m_showRegionChkbox->setCheckState(Qt::Checked);
+
+        updateRegions();
+    }
+
+    //reset the region vector
+    int numRegions;
+    in >> numRegions;
+    for(int i= 0; i< numRegions; i++)
+    {
+        CRegion region;
+        in >> region;
+        CRegion* newRegion = new CRegion(region.getOrigin(), region.getEndPoint(), InputImageLabel);
+        newRegion->Z_Level(region.Z_Level());
+        newRegion->setTopLeft(region.getTopLeft());
+        newRegion->setBotRight(region.getBotRight());
+        m_rgRegions.push_back(newRegion);
+    }
+
+    //shows up the regions on imagelabel
+    updateRegions();
+}
+
+////////////////////////////////////////////
+// turn to the pervous image
+void MainWindow::turnToPrev()
+{
+    if (iterator == list.begin())
+        iterator =list.end();
+    --iterator;
+
+    QFile file(*iterator);
+
+    if ( !file.open(QIODevice::WriteOnly))
+    {
+        QMessageBox::information(this, tr("Unable to save file"), file.errorString());
+        return;
+    }
+
+    QDataStream in (&file);
+    in.setVersion(QDataStream::Qt_4_5);
+
+    //clear the old region vector
+    if (!m_rgRegions.isEmpty())
+    {
+        for(int i=0; i< m_rgRegions.size(); i++)
+        {
+            if(m_rgRegions[i]!= NULL)
+                delete m_rgRegions[i];
+        }
+        m_rgRegions.clear();
+        m_selectedRegion = NULL;
+
+        m_selectedRegionStX->setValue(0);
+        m_selectedRegionStY->setValue(0);
+        m_selectedRegionEndX->setValue(0);
+        m_selectedRegionEndY->setValue(0);
+        m_selectedRegionLvl->setValue(0);
+
+        //check the checkbox
+        if (!m_bShowRegion)
+            m_showRegionChkbox->setCheckState(Qt::Checked);
+
+        updateRegions();
+    }
+
+    //reset the region vector
+    int numRegions;
+    in >> numRegions;
+    for(int i= 0; i< numRegions; i++)
+    {
+        CRegion region;
+        in >> region;
+        CRegion* newRegion = new CRegion(region.getOrigin(), region.getEndPoint(), InputImageLabel);
+        newRegion->Z_Level(region.Z_Level());
+        newRegion->setTopLeft(region.getTopLeft());
+        newRegion->setBotRight(region.getBotRight());
+        m_rgRegions.push_back(newRegion);
+    }
+
+    //shows up the regions on imagelabel
+    updateRegions();
+}
+
+/////////////////////////////////////////////
+// change the dir
+void MainWindow::dirChanged(QString newpath)
+{
+    init_path((fileDialog->directory()), newpath);
+}
+
+////////////////////////////////////////////
+// init dir
+void MainWindow::init_path(QDir newdir, QString filename)
+{
+    filepath = QDir(newdir);
+
+    QStringList filters;
+    filters << "*.data";
+    filepath.setNameFilters(filters);
+
+    filepath.setFilter( QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+    filepath.setSorting( QDir::Size | QDir::Reversed);
+    list = filepath.entryList();
+
+    if (!list.empty())
+    {
+        emit get2beg(false);
+        emit get2end(false);
+    }
+    else
+    {
+        emit get2beg(true);
+        emit get2end(true);
+    }
+
+    QFile file(filename);
+
+    if ( !file.open(QIODevice::WriteOnly))
+    {
+        QMessageBox::information(this, tr("Unable to save file"), file.errorString());
+        return;
+    }
+
+    QDataStream in (&file);
+    in.setVersion(QDataStream::Qt_4_5);
+
+    //clear the old region vector
+    if (!m_rgRegions.isEmpty())
+    {
+        for(int i=0; i< m_rgRegions.size(); i++)
+        {
+            if(m_rgRegions[i]!= NULL)
+                delete m_rgRegions[i];
+        }
+        m_rgRegions.clear();
+        m_selectedRegion = NULL;
+
+        m_selectedRegionStX->setValue(0);
+        m_selectedRegionStY->setValue(0);
+        m_selectedRegionEndX->setValue(0);
+        m_selectedRegionEndY->setValue(0);
+        m_selectedRegionLvl->setValue(0);
+
+        //check the checkbox
+        if (!m_bShowRegion)
+            m_showRegionChkbox->setCheckState(Qt::Checked);
+
+        updateRegions();
+    }
+
+    //reset the region vector
+    int numRegions;
+    in >> numRegions;
+    for(int i= 0; i< numRegions; i++)
+    {
+        CRegion region;
+        in >> region;
+        CRegion* newRegion = new CRegion(region.getOrigin(), region.getEndPoint(), InputImageLabel);
+        newRegion->Z_Level(region.Z_Level());
+        newRegion->setTopLeft(region.getTopLeft());
+        newRegion->setBotRight(region.getBotRight());
+        m_rgRegions.push_back(newRegion);
+    }
+
+    //shows up the regions on imagelabel
+    updateRegions();
+
+    QStringList::const_iterator itmp = list.begin();
+    for (; itmp != list.end(); ++itmp)
+        if (filepath.absoluteFilePath((*itmp)) == filename)
+        {
+            iterator = itmp;
+            break;
+        }
+}
 
 ////////////////////////////////////////////
 // Reset

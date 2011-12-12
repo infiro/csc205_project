@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QVector>
 #include <QtGui>
+#include <QStringList>
+#include <QDir>
 #include "math.h"
 #include "histogram.h"
 

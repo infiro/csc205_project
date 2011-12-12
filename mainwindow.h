@@ -4,6 +4,8 @@
 
 #include <QMainWindow>
 #include <QtGui>
+#include <QStringList>
+#include <QDir>
 #include "image.h"
 
 QT_BEGIN_NAMESPACE
@@ -55,11 +57,20 @@ private slots:
     void onInteractiveRadio(bool);
     void onEditModeRadio(bool);
 
+    void showImage();
+    void turnToNext();
+    void turnToPrev();
+    void dirChanged(QString);
+
     void onSelectedRegionLvlSpinbox(int);
     void onSelectedRegionStXSpinbox(int);
     void onSelectedRegionEndXSpinbox(int);
     void onSelectedRegionStYSpinbox(int);
     void onSelectedRegionEndYSpinbox(int);
+
+signals:
+    void get2end(bool);
+    void get2beg(bool);
 
 private:
     void createActions();
@@ -68,6 +79,9 @@ private:
     void createImageArea ();
     void createButtons   ();
     void createSpinBox   ();
+
+    //init path of image gallery
+    void init_path(QDir, QString);
 
     void applyFilter();
     void normalizeFilter(QVector<float> &rgFilter);
@@ -107,6 +121,9 @@ private:
     QAction *saveFileAct;
     QAction *loadDataAct;
     QAction *saveDataAct;
+    QAction *pervImage;
+    QAction *nextImage;
+    QAction *indexPath;
     QAction *exitAct;
 
     QString filename;
@@ -120,6 +137,12 @@ private:
 
     bool m_bShowRegion;
     bool m_bTiltShift;
+
+    //image gallery
+    QStringList::const_iterator iterator;
+    QStringList list;
+    QFileDialog *fileDialog;
+    QDir filepath;
 
     //Regions
     QVector<CRegion*> m_rgRegions;
