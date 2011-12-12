@@ -50,6 +50,7 @@ private slots:
     void openFile();
     void saveFile();
     void loadData();
+    void loadData(QString filename);
     void saveData();
     void onResetBtn();
     void onApplyFilterBtn();
@@ -60,17 +61,12 @@ private slots:
     void showImage();
     void turnToNext();
     void turnToPrev();
-    void dirChanged(QString);
 
     void onSelectedRegionLvlSpinbox(int);
     void onSelectedRegionStXSpinbox(int);
     void onSelectedRegionEndXSpinbox(int);
     void onSelectedRegionStYSpinbox(int);
     void onSelectedRegionEndYSpinbox(int);
-
-signals:
-    void get2end(bool);
-    void get2beg(bool);
 
 private:
     void createActions();
@@ -79,9 +75,6 @@ private:
     void createImageArea ();
     void createButtons   ();
     void createSpinBox   ();
-
-    //init path of image gallery
-    void init_path(QDir, QString);
 
     void applyFilter();
     void normalizeFilter(QVector<float> &rgFilter);
@@ -106,6 +99,8 @@ private:
 
     QPushButton *ApplyBtn;
     QPushButton *ResetBtn;
+    QPushButton *prevImageBtn;
+    QPushButton *nextImageBtn;
 
     //display the selected region position
     QSpinBox    *m_selectedRegionStX;
@@ -121,10 +116,11 @@ private:
     QAction *saveFileAct;
     QAction *loadDataAct;
     QAction *saveDataAct;
-    QAction *pervImage;
-    QAction *nextImage;
     QAction *indexPath;
     QAction *exitAct;
+
+    QRadioButton* m_editModeBtn;
+    QRadioButton* m_tiltShiftRbtn;
 
     QString filename;
 
@@ -139,10 +135,9 @@ private:
     bool m_bTiltShift;
 
     //image gallery
-    QStringList::const_iterator iterator;
-    QStringList list;
-    QFileDialog *fileDialog;
-    QDir filepath;
+    QStringList::const_iterator m_FileIterator;
+    QStringList m_Filelist;
+    QDir        m_FileDirectory;
 
     //Regions
     QVector<CRegion*> m_rgRegions;

@@ -70,7 +70,7 @@ QDataStream & operator >>( QDataStream & in , CImage & image)
     in >> fileName
        >> inputImage;
 
-    image.setOriginalImage(inputImage);
+    image.load(inputImage, fileName);
 
     return (in);
 }
@@ -85,12 +85,6 @@ MainWindow::MainWindow()
     //creat Menus and actions
     createActions();
     createMenus();
-
-    //fileDialog box for image path
-    fileDialog =new QFileDialog(this,
-                                tr("Select the image"),
-                                "",
-                                tr("Images (*.data)"));
 
     // Set Layout for Image
     createImageArea();
@@ -117,8 +111,11 @@ MainWindow::MainWindow()
 
     // Title
     centralWidget->setLayout(centralLayout);
-    setWindowTitle(tr("Triet & Ding - CSC 205 Project"));
+    setWindowTitle(tr("iLivePic Triet & Ding"));
     resize(800, 600);
+
+    m_bShowRegion = true;
+    m_bTiltShift = false;
 }
 
 MainWindow::~MainWindow()
@@ -245,15 +242,24 @@ void MainWindow::createFilterGrid()
     m_FilterLayout = new QGridLayout;
 
     // Radio buttons
-    QRadioButton* editModeRbtn = new QRadioButton("Region Edit mode");
-    editModeRbtn->setChecked(true);
-    connect(editModeRbtn, SIGNAL(toggled(bool)), this, SLOT(onEditModeRadio(bool)));
-    m_FilterLayout->addWidget(editModeRbtn,1,1,Qt::AlignCenter);
+    m_editModeBtn = new QRadioButton("Region Edit mode");
+    m_editModeBtn->setChecked(true);
+    connect(m_editModeBtn, SIGNAL(toggled(bool)), this, SLOT(onEditModeRadio(bool)));
+    m_FilterLayout->addWidget(m_editModeBtn,1,1,Qt::AlignCenter);
 
-    QRadioButton* tiltShiftRbtn = new QRadioButton("Interactive mode");
-    tiltShiftRbtn->setChecked(false);
-    connect(tiltShiftRbtn, SIGNAL(toggled(bool)), this, SLOT(onInteractiveRadio(bool)));
-    m_FilterLayout->addWidget(tiltShiftRbtn,2,1, Qt::AlignCenter);
+    m_tiltShiftRbtn = new QRadioButton("Interactive mode");
+    m_tiltShiftRbtn->setChecked(false);
+    connect(m_tiltShiftRbtn, SIGNAL(toggled(bool)), this, SLOT(onInteractiveRadio(bool)));
+    m_FilterLayout->addWidget(m_tiltShiftRbtn,2,1, Qt::AlignCenter);
+
+    //image botton
+    prevImageBtn = new QPushButton("Prevous");
+    connect(prevImageBtn, SIGNAL(clicked()), this, SLOT(turnToPrev()));
+    m_FilterLayout->addWidget(prevImageBtn, 3,1);
+
+    nextImageBtn = new QPushButton("Next");
+    connect(nextImageBtn, SIGNAL(clicked()), this, SLOT(turnToNext()));
+    m_FilterLayout->addWidget(nextImageBtn, 3,2);
 }
 
 /////////////////////////////////////////////////////////////////
@@ -261,40 +267,30 @@ void MainWindow::createFilterGrid()
 // Action == menu
 void MainWindow::createActions()
 {
-    // Open file
-    openFileAct = new QAction(tr("&Open Input Image File"), this);
-    openFileAct->setShortcut(tr("Ctrl+O"));
-    connect(openFileAct, SIGNAL(triggered()), this, SLOT(openFile()));
-
-    // save result image file
-    saveFileAct = new QAction(tr("&Save Output Image File"), this);
-    saveFileAct->setShortcut(tr("Ctrl+I"));
-    connect(saveFileAct, SIGNAL(triggered()), this, SLOT(saveFile()));
-
     //load input file with data
-    loadDataAct = new QAction(tr("&Load Imgae's Data"), this);
+    loadDataAct = new QAction(tr("&Load file"), this);
     loadDataAct->setShortcut(tr("Ctrl+l"));
     connect(loadDataAct, SIGNAL(triggered()), this, SLOT(loadData()));
 
     //save input file with data
-    saveDataAct = new QAction(tr("&Save Image's Data"), this);
+    saveDataAct = new QAction(tr("&Save file"), this);
     saveDataAct->setShortcut(tr("Ctrl+m"));
     connect(saveDataAct, SIGNAL(triggered()), this, SLOT(saveData()));
+
+    // Open file
+    openFileAct = new QAction(tr("&Import Image"), this);
+    openFileAct->setShortcut(tr("Ctrl+O"));
+    connect(openFileAct, SIGNAL(triggered()), this, SLOT(openFile()));
+
+    // save result image file
+    saveFileAct = new QAction(tr("&Export Image"), this);
+    saveFileAct->setShortcut(tr("Ctrl+I"));
+    connect(saveFileAct, SIGNAL(triggered()), this, SLOT(saveFile()));
 
     //choose image path
     indexPath = new QAction(tr("&Choose Path"), this);
     indexPath->setShortcut(tr("Ctrl+p"));
     connect(indexPath, SIGNAL(triggered()), this, SLOT(showImage()));
-
-    //turn to next image
-    nextImage = new QAction(tr("&Display Next Image"), this);
-    nextImage->setShortcut(tr("Ctrl+d"));
-    connect(nextImage, SIGNAL(triggered()), this, SLOT(turnToNext()));
-
-    //turn to pervous image
-    pervImage = new QAction(tr("&Display Pervous Image"), this);
-    pervImage->setShortcut(tr("Ctrl+a"));
-    connect(pervImage, SIGNAL(triggered()), this, SLOT(turnToPrev()));
 
     // Exit menu
     exitAct = new QAction(tr("E&xit"), this);
@@ -307,18 +303,18 @@ void MainWindow::createActions()
 void MainWindow::createMenus()
 {
     fileMenu = menuBar()->addMenu(tr("&File"));
-    fileMenu->addAction(openFileAct);
-    fileMenu->addAction(saveFileAct);
     fileMenu->addAction(loadDataAct);
     fileMenu->addAction(saveDataAct);
 
-    fileMenu = menuBar()->addMenu(tr("&Image Gallery"));
-    fileMenu->addAction(indexPath);
-    fileMenu->addAction(nextImage);
-    fileMenu->addAction(pervImage);
+    fileMenu->addSeparator();
+    fileMenu->addAction(openFileAct);
+    fileMenu->addAction(saveFileAct);
 
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
+
+    fileMenu = menuBar()->addMenu(tr("&Image Gallery"));
+    fileMenu->addAction(indexPath);
 }
 
 ///////////////////////////////////////////////////////////////
@@ -371,17 +367,26 @@ void MainWindow::saveFile()
 void MainWindow::loadData()
 {
      QString filename = QFileDialog:: getOpenFileName(this,
-                                                      tr("Open Data File"),
+                                                      tr("Open iLivePic File"),
                                                       "",
-                                                      tr("Data (*.data);;All Files(*)"));
+                                                      tr("Data (*.iLivePic);;All Files(*)"));
+
+     loadData(filename);
+}
+
+void MainWindow::loadData(QString filename)
+{
 
      if (filename.isEmpty())
      {
          return;
-     } else {
+     }
+     else
+     {
          QFile file(filename);
 
-         if(!file.open(QIODevice::ReadOnly)) {
+         if(!file.open(QIODevice::ReadOnly))
+         {
              QMessageBox::information(this, tr("Unable to open file"), file.errorString());
              return;
          }
@@ -405,12 +410,6 @@ void MainWindow::loadData()
              m_selectedRegionEndX->setValue(0);
              m_selectedRegionEndY->setValue(0);
              m_selectedRegionLvl->setValue(0);
-
-             //check the checkbox
-             if (!m_bShowRegion)
-                 m_showRegionChkbox->setCheckState(Qt::Checked);
-
-             updateRegions();
          }
 
          //reset the region vector
@@ -427,9 +426,27 @@ void MainWindow::loadData()
              m_rgRegions.push_back(newRegion);
          }
 
-         //shows up the regions on imagelabel
+         // Load the input and output image
+         in >> m_InputImage;
+         in >> m_OutputImage;
+
+         //Hide regions show interative mode
+         m_bShowRegion = false;
+         m_bTiltShift  = true;
+         m_showRegionChkbox->setChecked(false);
+         m_tiltShiftRbtn->setChecked(true);
+         m_editModeBtn->setChecked(false);
          updateRegions();
 
+         // Update image
+         OutputImageLabel->setPixmap(m_OutputImage.getOriginalPixmap());
+         OutputImageLabel->adjustSize();
+         InputImageLabel->setPixmap(m_InputImage.getOriginalPixmap());
+         InputImageLabel->adjustSize();
+
+         // update histogram
+         m_OutputImage.updateHistogram();
+         m_InputImage.updateHistogram();
      }
 }
 
@@ -438,9 +455,9 @@ void MainWindow::loadData()
 void MainWindow::saveData()
 {
      QString filename = QFileDialog::getSaveFileName(this,
-                                                     tr("Save Data File"),
+                                                     tr("Save iLivePic File"),
                                                      "",
-                                                     tr("Data (*.data);;All File (*)"));
+                                                     tr("Data (*.iLivePic);;All File (*)"));
 
      if ( filename.isEmpty())
      {
@@ -464,6 +481,9 @@ void MainWindow::saveData()
              out<< *m_rgRegions[i];
          }
 
+         // Save Input image
+         out<< m_InputImage;
+         out<< m_OutputImage;
      }
 }
 
@@ -471,11 +491,36 @@ void MainWindow::saveData()
 // choose the image path
 void MainWindow::showImage()
 {
+    //fileDialog box for image path
+    QFileDialog *mydlg = new QFileDialog(this,
+                                        tr("Open iLivePic File"),
+                                        "",
+                                        tr("iLivePic (*.iLivePic)"));
+    QString filename = mydlg->getOpenFileName();
 
-    fileDialog->show();
+    m_FileDirectory = mydlg->directory();
 
-    connect(fileDialog, SIGNAL(fileSelected(QString)),
-            this, SLOT(dirChanged(QString)));
+    QStringList filters;
+    filters << "*.iLivePic";
+    m_FileDirectory.setNameFilters(filters);
+
+    m_FileDirectory.setFilter( QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+    m_FileDirectory.setSorting( QDir::Size | QDir::Reversed);
+    m_Filelist = m_FileDirectory.entryList();
+
+    // find the current iterator for this file
+    QStringList::const_iterator itmp = m_Filelist.begin();
+    for (; itmp != m_Filelist.end(); ++itmp)
+    {
+        if (m_FileDirectory.absoluteFilePath((*itmp)) == filename)
+        {
+            m_FileIterator = itmp;
+            break;
+        }
+    }
+
+    // Load data file
+    loadData(filename);
 
 }
 
@@ -483,215 +528,27 @@ void MainWindow::showImage()
 // turn to the next image
 void MainWindow::turnToNext()
 {
-    if (iterator+1 == list.end())
-        iterator = list.begin();
-    ++iterator;
+    if (m_FileIterator+1 == m_Filelist.end())
+        m_FileIterator = m_Filelist.begin();
 
-    QFile file(*iterator);
+    ++m_FileIterator;
 
-    if ( !file.open(QIODevice::WriteOnly))
-    {
-        QMessageBox::information(this, tr("Unable to save file"), file.errorString());
-        return;
-    }
-
-    QDataStream in (&file);
-    in.setVersion(QDataStream::Qt_4_5);
-
-    //clear the old region vector
-    if (!m_rgRegions.isEmpty())
-    {
-        for(int i=0; i< m_rgRegions.size(); i++)
-        {
-            if(m_rgRegions[i]!= NULL)
-                delete m_rgRegions[i];
-        }
-        m_rgRegions.clear();
-        m_selectedRegion = NULL;
-
-        m_selectedRegionStX->setValue(0);
-        m_selectedRegionStY->setValue(0);
-        m_selectedRegionEndX->setValue(0);
-        m_selectedRegionEndY->setValue(0);
-        m_selectedRegionLvl->setValue(0);
-
-        //check the checkbox
-        if (!m_bShowRegion)
-            m_showRegionChkbox->setCheckState(Qt::Checked);
-
-        updateRegions();
-    }
-
-    //reset the region vector
-    int numRegions;
-    in >> numRegions;
-    for(int i= 0; i< numRegions; i++)
-    {
-        CRegion region;
-        in >> region;
-        CRegion* newRegion = new CRegion(region.getOrigin(), region.getEndPoint(), InputImageLabel);
-        newRegion->Z_Level(region.Z_Level());
-        newRegion->setTopLeft(region.getTopLeft());
-        newRegion->setBotRight(region.getBotRight());
-        m_rgRegions.push_back(newRegion);
-    }
-
-    //shows up the regions on imagelabel
-    updateRegions();
+    // Load data file
+    QString filename = m_FileDirectory.absoluteFilePath((*m_FileIterator));
+    loadData(filename);
 }
 
 ////////////////////////////////////////////
 // turn to the pervous image
 void MainWindow::turnToPrev()
 {
-    if (iterator == list.begin())
-        iterator =list.end();
-    --iterator;
+    if (m_FileIterator == m_Filelist.begin())
+        m_FileIterator =m_Filelist.end();
+    --m_FileIterator;
 
-    QFile file(*iterator);
-
-    if ( !file.open(QIODevice::WriteOnly))
-    {
-        QMessageBox::information(this, tr("Unable to save file"), file.errorString());
-        return;
-    }
-
-    QDataStream in (&file);
-    in.setVersion(QDataStream::Qt_4_5);
-
-    //clear the old region vector
-    if (!m_rgRegions.isEmpty())
-    {
-        for(int i=0; i< m_rgRegions.size(); i++)
-        {
-            if(m_rgRegions[i]!= NULL)
-                delete m_rgRegions[i];
-        }
-        m_rgRegions.clear();
-        m_selectedRegion = NULL;
-
-        m_selectedRegionStX->setValue(0);
-        m_selectedRegionStY->setValue(0);
-        m_selectedRegionEndX->setValue(0);
-        m_selectedRegionEndY->setValue(0);
-        m_selectedRegionLvl->setValue(0);
-
-        //check the checkbox
-        if (!m_bShowRegion)
-            m_showRegionChkbox->setCheckState(Qt::Checked);
-
-        updateRegions();
-    }
-
-    //reset the region vector
-    int numRegions;
-    in >> numRegions;
-    for(int i= 0; i< numRegions; i++)
-    {
-        CRegion region;
-        in >> region;
-        CRegion* newRegion = new CRegion(region.getOrigin(), region.getEndPoint(), InputImageLabel);
-        newRegion->Z_Level(region.Z_Level());
-        newRegion->setTopLeft(region.getTopLeft());
-        newRegion->setBotRight(region.getBotRight());
-        m_rgRegions.push_back(newRegion);
-    }
-
-    //shows up the regions on imagelabel
-    updateRegions();
-}
-
-/////////////////////////////////////////////
-// change the dir
-void MainWindow::dirChanged(QString newpath)
-{
-    init_path((fileDialog->directory()), newpath);
-}
-
-////////////////////////////////////////////
-// init dir
-void MainWindow::init_path(QDir newdir, QString filename)
-{
-    filepath = QDir(newdir);
-
-    QStringList filters;
-    filters << "*.data";
-    filepath.setNameFilters(filters);
-
-    filepath.setFilter( QDir::Files | QDir::Hidden | QDir::NoSymLinks);
-    filepath.setSorting( QDir::Size | QDir::Reversed);
-    list = filepath.entryList();
-
-    if (!list.empty())
-    {
-        emit get2beg(false);
-        emit get2end(false);
-    }
-    else
-    {
-        emit get2beg(true);
-        emit get2end(true);
-    }
-
-    QFile file(filename);
-
-    if ( !file.open(QIODevice::WriteOnly))
-    {
-        QMessageBox::information(this, tr("Unable to save file"), file.errorString());
-        return;
-    }
-
-    QDataStream in (&file);
-    in.setVersion(QDataStream::Qt_4_5);
-
-    //clear the old region vector
-    if (!m_rgRegions.isEmpty())
-    {
-        for(int i=0; i< m_rgRegions.size(); i++)
-        {
-            if(m_rgRegions[i]!= NULL)
-                delete m_rgRegions[i];
-        }
-        m_rgRegions.clear();
-        m_selectedRegion = NULL;
-
-        m_selectedRegionStX->setValue(0);
-        m_selectedRegionStY->setValue(0);
-        m_selectedRegionEndX->setValue(0);
-        m_selectedRegionEndY->setValue(0);
-        m_selectedRegionLvl->setValue(0);
-
-        //check the checkbox
-        if (!m_bShowRegion)
-            m_showRegionChkbox->setCheckState(Qt::Checked);
-
-        updateRegions();
-    }
-
-    //reset the region vector
-    int numRegions;
-    in >> numRegions;
-    for(int i= 0; i< numRegions; i++)
-    {
-        CRegion region;
-        in >> region;
-        CRegion* newRegion = new CRegion(region.getOrigin(), region.getEndPoint(), InputImageLabel);
-        newRegion->Z_Level(region.Z_Level());
-        newRegion->setTopLeft(region.getTopLeft());
-        newRegion->setBotRight(region.getBotRight());
-        m_rgRegions.push_back(newRegion);
-    }
-
-    //shows up the regions on imagelabel
-    updateRegions();
-
-    QStringList::const_iterator itmp = list.begin();
-    for (; itmp != list.end(); ++itmp)
-        if (filepath.absoluteFilePath((*itmp)) == filename)
-        {
-            iterator = itmp;
-            break;
-        }
+    // Load data file
+    QString filename = m_FileDirectory.absoluteFilePath((*m_FileIterator));
+    loadData(filename);
 }
 
 ////////////////////////////////////////////
@@ -903,7 +760,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             selectedPoint = event->pos();
 
             // Only apply if it is inside Image label 1
-            if(!insideInputImage(m_lastPos))
+            if(!insideInputImage(event->pos()))
                 return;
 
             if(m_rgRegions.size() != 0)

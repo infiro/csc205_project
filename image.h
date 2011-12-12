@@ -94,6 +94,7 @@ public:
     ~CImage(){};
     void updateHistogram();
     bool load(QString filename);
+    bool load(const QImage& inputImage, QString filename);
     bool save(QString filename);
 
     bool isNull() const {return m_OriginalImage.isNull();}
