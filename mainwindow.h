@@ -17,6 +17,7 @@ class QGridLayout;
 class QDoubleSpinBox;
 class QSpinBox;
 class QCheckBox;
+class QRadioButton;
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -40,7 +41,8 @@ public:
 
     FILTER getFilter(int z);
     FILTER getTiltShiftFilter(int current_z, int target_z, int distance);
-    QVector<CRegion*> getRegions(){return m_rgRegions;}
+    QVector<CRegion*>getRegions(){return m_rgRegions;}
+
 
 private slots:
     void openFile();
@@ -48,13 +50,10 @@ private slots:
     void loadFileAndData();
     void saveFileAndData();
     void onResetBtn();
-    void onSharpenBtn();
     void onApplyFilterBtn();
-    void onNormalizedChkbox(bool);
-    void onFilterWidthChanged(int);
-    void onFilterHeightChanged(int);
     void onShowRegionChkbox(bool);
-    void onTiltShiftChkbox(bool);
+    void onInteractiveRadio(bool);
+    void onEditModeRadio(bool);
 
     void onSelectedRegionLvlSpinbox(int);
     void onSelectedRegionStXSpinbox(int);
@@ -71,9 +70,8 @@ private:
     void createSpinBox   ();
 
     void applyFilter();
-    void normalizeFilter();
+    void normalizeFilter(QVector<float> &rgFilter);
 
-    void changedFilterGrid();
     void updateRegions();
 
     bool insideInputImage(const QPoint& point);
@@ -93,13 +91,7 @@ private:
     QLabel *OutputImageLabel;
 
     QPushButton *ApplyBtn;
-    QPushButton *BlurBtn;
-    QPushButton *SharpenBtn;
-
-    QCheckBox   *NormalizedChkbox;
-
-    QSpinBox    *FilterWidth;
-    QSpinBox    *FilterHeight;
+    QPushButton *ResetBtn;
 
     //display the selected region position
     QSpinBox    *m_selectedRegionStX;
@@ -107,7 +99,7 @@ private:
     QSpinBox    *m_selectedRegionEndX;
     QSpinBox    *m_selectedRegionEndY;
     QSpinBox    *m_selectedRegionLvl;
-
+    QCheckBox   *m_showRegionChkbox;
 
     QMenu *fileMenu;
 
@@ -122,16 +114,10 @@ private:
     CImage m_InputImage;
     CImage m_OutputImage;
 
-    QVector<QDoubleSpinBox*> m_rgSpinBoxes;
-    QVector<float> m_rgFilter;
-
-    int m_filterWidth;
-    int m_filterHeight;
     QGridLayout* m_FilterLayout;
 
     QGridLayout *RegionBoxLayout;
 
-    bool m_bNormalized;
     bool m_bShowRegion;
     bool m_bTiltShift;
 

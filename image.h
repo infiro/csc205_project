@@ -144,10 +144,6 @@ private:
     QVector<float> m_rgCDFHistogram;
 
     CHistogramWidget m_Histogram;
-
-    // List of region
-    QVector<CRegion> m_rgRegions;
-
     friend class CHistogramWidget;
 };
 #endif // IMAGE_H

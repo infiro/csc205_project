@@ -77,7 +77,6 @@ QDataStream & operator >>( QDataStream & in , CImage & image)
 
 MainWindow::MainWindow()
 {
-    ///////////////////////////////////////////
     // Central widget
     centralWidget = new QWidget;
     setCentralWidget(centralWidget);
@@ -101,41 +100,19 @@ MainWindow::MainWindow()
     QLabel *outputImage = new QLabel("Output Image");
     centralLayout->addWidget(inputImage , 7, 1);
     centralLayout->addWidget(outputImage, 7, 2);
-    centralLayout->addWidget(BlurBtn, 11, 1);
-    centralLayout->addWidget(SharpenBtn, 12, 1);
+    centralLayout->addWidget(ResetBtn, 11, 1);
     centralLayout->addWidget(ApplyBtn, 11,2,1,1);
-
-    QLabel *regionStX = new QLabel("Left");
-    QLabel *regionStY = new QLabel("Top");
-    QLabel *regionEndX = new QLabel("Right");
-    QLabel *regionEndY = new QLabel("Bot");
-    QLabel *regionLvl = new QLabel("Depth Level(10 is closest)");
-    QLabel *selectedRegionLabel = new QLabel("Selected Region: ");
-    RegionBoxLayout = new QGridLayout;
-    RegionBoxLayout->addWidget(regionStX, 1,2);
-    RegionBoxLayout->addWidget(regionStY, 1,3);
-    RegionBoxLayout->addWidget(regionEndX, 1,4);
-    RegionBoxLayout->addWidget(regionEndY, 1,5);
-    RegionBoxLayout->addWidget(regionLvl, 1,6);
-    RegionBoxLayout->addWidget(selectedRegionLabel, 2,1);
-    centralLayout->addLayout(RegionBoxLayout,8,1,2,1);
 
     //Region Spinbox
     createSpinBox();
-
-    // Filtering Spinbox
-    m_filterWidth  = 3;
-    m_filterHeight = 3;
     createFilterGrid();
-    centralLayout->addLayout(m_FilterLayout, 8,2,m_filterHeight,1);
+    centralLayout->addLayout(RegionBoxLayout,8,1,2,1);
+    centralLayout->addLayout(m_FilterLayout, 8,2,1,1);
 
     // Title
     centralWidget->setLayout(centralLayout);
     setWindowTitle(tr("Triet & Ding - CSC 205 Project"));
     resize(800, 600);
-
-    //Show regions
-    m_bShowRegion = true;
 }
 
 MainWindow::~MainWindow()
@@ -193,74 +170,85 @@ void MainWindow::createImageArea()
 // create Buttons
 void MainWindow::createButtons()
 {
-    BlurBtn          = new QPushButton("Reset");
-    SharpenBtn       = new QPushButton("Nothing filter");
-    ApplyBtn         = new QPushButton("Smallgantic");
+    ResetBtn         = new QPushButton("Reset");
+    ApplyBtn         = new QPushButton("Apply");
+    connect(ResetBtn , SIGNAL(clicked()), this, SLOT(onResetBtn()));
+    connect(ApplyBtn, SIGNAL(clicked()), this, SLOT(onApplyFilterBtn()));
+}
 
-    connect(BlurBtn         , SIGNAL(clicked()), this, SLOT(onResetBtn()));
-    connect(SharpenBtn      , SIGNAL(clicked()), this, SLOT(onSharpenBtn()));
-    connect(ApplyBtn        , SIGNAL(clicked()), this, SLOT(onApplyFilterBtn()));
+////////////////////////////////////////////////////////
+// Selected Regions' X, Y, gray&sharpen Level spinbox
+void MainWindow::createSpinBox()
+{
+    RegionBoxLayout = new QGridLayout;
+
+    // Label
+    QLabel *regionStX = new QLabel("Left");
+    QLabel *regionStY = new QLabel("Top");
+    QLabel *regionEndX = new QLabel("Right");
+    QLabel *regionEndY = new QLabel("Bot");
+    QLabel *regionLvl = new QLabel("Depth(-10 to 10)");
+    QLabel *selectedRegionLabel = new QLabel("Selected Region: ");
+
+    RegionBoxLayout->addWidget(regionStX, 1,2);
+    RegionBoxLayout->addWidget(regionStY, 1,3);
+    RegionBoxLayout->addWidget(regionEndX, 1,4);
+    RegionBoxLayout->addWidget(regionEndY, 1,5);
+    RegionBoxLayout->addWidget(regionLvl, 1,6);
+    RegionBoxLayout->addWidget(selectedRegionLabel, 2,1);
+
+    // Spinboxed
+    m_selectedRegionStX  = new QSpinBox;
+    m_selectedRegionStY  = new QSpinBox;
+    m_selectedRegionEndX = new QSpinBox;
+    m_selectedRegionEndY = new QSpinBox;
+    m_selectedRegionLvl  = new QSpinBox;
+
+    m_selectedRegionStX ->setRange(0, 1000);
+    m_selectedRegionEndX->setRange(0, 1000);
+    m_selectedRegionStY ->setRange(0, 1000);
+    m_selectedRegionEndY->setRange(0, 1000);
+    m_selectedRegionLvl ->setRange(-10,10);
+
+    RegionBoxLayout->addWidget(m_selectedRegionStX, 2,2);
+    RegionBoxLayout->addWidget(m_selectedRegionStY, 2,3);
+    RegionBoxLayout->addWidget(m_selectedRegionEndX, 2,4);
+    RegionBoxLayout->addWidget(m_selectedRegionEndY, 2,5);
+    RegionBoxLayout->addWidget(m_selectedRegionLvl, 2,6);
+
+    // Show region
+    m_showRegionChkbox  = new QCheckBox("Show regions");
+    m_showRegionChkbox->setCheckState(Qt::Checked);
+    connect(m_showRegionChkbox, SIGNAL(toggled(bool)), this, SLOT(onShowRegionChkbox(bool)));
+    RegionBoxLayout->addWidget(m_showRegionChkbox,1,1);
+    m_bShowRegion = true;
+
+    // Connect action
+    connect(m_selectedRegionLvl , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionLvlSpinbox(int)));
+    connect(m_selectedRegionStX , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionStXSpinbox(int)));
+    connect(m_selectedRegionEndX, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionEndXSpinbox(int)));
+    connect(m_selectedRegionStY , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionStYSpinbox(int)));
+    connect(m_selectedRegionEndY, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionEndYSpinbox(int)));
 }
 
 //////////////////////////////////////////
 // create filterlayout
 void MainWindow::createFilterGrid()
 {
-    // Clear Spinbox controls
-    for(int i=0; i< m_rgSpinBoxes.size(); i++)
-    {
-        if(m_rgSpinBoxes[i] != NULL)
-            delete m_rgSpinBoxes[i];
-    }
-    m_rgSpinBoxes.clear();
-
     // Add new spinbox control
     m_FilterLayout = new QGridLayout;
 
-    // Add filter size
-    QSpinBox *FilterWidth  = new QSpinBox;
-    QSpinBox *FilterHeight = new QSpinBox;
+    // Radio buttons
+    QRadioButton* editModeRbtn = new QRadioButton("Region Edit mode");
+    editModeRbtn->setChecked(true);
+    connect(editModeRbtn, SIGNAL(toggled(bool)), this, SLOT(onEditModeRadio(bool)));
+    m_FilterLayout->addWidget(editModeRbtn,1,1,Qt::AlignCenter);
 
-    FilterWidth->setRange(1,10);
-    FilterHeight->setRange(1,10);
+    QRadioButton* tiltShiftRbtn = new QRadioButton("Interactive mode");
+    tiltShiftRbtn->setChecked(false);
+    connect(tiltShiftRbtn, SIGNAL(toggled(bool)), this, SLOT(onInteractiveRadio(bool)));
+    m_FilterLayout->addWidget(tiltShiftRbtn,2,1, Qt::AlignCenter);
 
-    FilterWidth->setValue(3);
-    FilterHeight->setValue(3);
-    connect(FilterWidth       , SIGNAL(valueChanged(int)), this, SLOT(onFilterWidthChanged(int)));
-    connect(FilterHeight      , SIGNAL(valueChanged(int)), this, SLOT(onFilterHeightChanged(int)));
-
-    // Normalized checkbox
-    NormalizedChkbox = new QCheckBox("Normalize filter");
-    NormalizedChkbox->setCheckState(Qt::Checked);
-    m_bNormalized   = true;
-    connect(NormalizedChkbox, SIGNAL(toggled(bool)), this, SLOT(onNormalizedChkbox(bool)));
-
-    m_FilterLayout->addWidget(FilterWidth     ,1,1);
-    m_FilterLayout->addWidget(FilterHeight    ,1,2);
-    m_FilterLayout->addWidget(NormalizedChkbox,1,3);
-
-    // Add filter grid
-    for(int i =0; i< m_filterWidth; i++)
-    {
-        for(int j =0; j<m_filterHeight; j++)
-        {
-            QDoubleSpinBox *spinBox = new QDoubleSpinBox;
-            spinBox->setRange(-100.0f, 100.0f);
-            m_rgSpinBoxes.push_back(spinBox);
-            m_FilterLayout->addWidget(spinBox,i+2,j+1);
-        }
-    }
-
-    // Show region
-    QCheckBox* showRegionChkBox  = new QCheckBox("Show regions");
-    showRegionChkBox->setCheckState(Qt::Checked);
-    connect(showRegionChkBox, SIGNAL(toggled(bool)), this, SLOT(onShowRegionChkbox(bool)));
-    m_FilterLayout->addWidget(showRegionChkBox,1,4);
-
-    QCheckBox* tiltShiftChkBox = new QCheckBox("Tilt-Shift");
-    tiltShiftChkBox->setCheckState(Qt::Unchecked);
-    connect(tiltShiftChkBox, SIGNAL(toggled(bool)), this, SLOT(onTiltShiftChkbox(bool)));
-    m_FilterLayout->addWidget(tiltShiftChkBox,1,5);
 }
 
 /////////////////////////////////////////////////////////////////
@@ -367,35 +355,7 @@ void MainWindow::saveFileAndData()
 
 }
 
-////////////////////////////////////////////////////////
-// Selected Regions' X, Y, gray&sharpen Level spinbox
-void MainWindow::createSpinBox()
-{
-    m_selectedRegionStX  = new QSpinBox;
-    m_selectedRegionStY  = new QSpinBox;
-    m_selectedRegionEndX = new QSpinBox;
-    m_selectedRegionEndY = new QSpinBox;
-    m_selectedRegionLvl  = new QSpinBox;
 
-    m_selectedRegionStX ->setRange(0, 1000);
-    m_selectedRegionEndX->setRange(0, 1000);
-    m_selectedRegionStY ->setRange(0, 1000);
-    m_selectedRegionEndY->setRange(0, 1000);
-    m_selectedRegionLvl ->setRange(-10,10);
-
-    RegionBoxLayout->addWidget(m_selectedRegionStX, 2,2);
-    RegionBoxLayout->addWidget(m_selectedRegionStY, 2,3);
-    RegionBoxLayout->addWidget(m_selectedRegionEndX, 2,4);
-    RegionBoxLayout->addWidget(m_selectedRegionEndY, 2,5);
-    RegionBoxLayout->addWidget(m_selectedRegionLvl, 2,6);
-
-    // Connect action
-    connect(m_selectedRegionLvl , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionLvlSpinbox(int)));
-    connect(m_selectedRegionStX , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionStXSpinbox(int)));
-    connect(m_selectedRegionEndX, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionEndXSpinbox(int)));
-    connect(m_selectedRegionStY , SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionStYSpinbox(int)));
-    connect(m_selectedRegionEndY, SIGNAL(valueChanged(int)), this, SLOT(onSelectedRegionEndYSpinbox(int)));
-}
 ////////////////////////////////////////////
 // Reset
 void MainWindow::onResetBtn()
@@ -419,22 +379,19 @@ void MainWindow::onResetBtn()
 }
 
 ////////////////////////////////////////////
-// Display the Sharpen filter
-void MainWindow::onSharpenBtn()
-{
-    if(m_OutputImage.isNull())
-        return;
-}
-
-////////////////////////////////////////////
 // Apply filter
 void MainWindow::onApplyFilterBtn()
 {
     if(m_OutputImage.isNull())
         return;
 
+    this->setCursor(Qt::WaitCursor);
+    QApplication::processEvents();
+
     // Apply filter
     applyFilter();
+
+    this->setCursor(Qt::ArrowCursor);
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -452,50 +409,22 @@ void MainWindow::applyFilter()
 
 /////////////////////////////////////////////////////////////////////
 // Normalized filter
-void MainWindow::normalizeFilter()
+void MainWindow::normalizeFilter(QVector<float> &rgFilter)
 {
     // get weight
     float weight = 0.0f;
-    for(int i =0; i< m_rgFilter.size(); i++)
+    for(int i =0; i< rgFilter.size(); i++)
     {
-         weight += m_rgFilter[i];
+         weight += rgFilter[i];
     }
 
     if(weight == 0.0f)
         weight = 1.0f;
 
     // normalize filter
-    for(int i =0; i< m_rgFilter.size(); i++)
+    for(int i =0; i< rgFilter.size(); i++)
     {
-         m_rgFilter[i] /= weight;
-    }
-}
-
-///////////////////////////////////////////////////////////////
-// GridSize changed
-void MainWindow::changedFilterGrid()
-{
-    // Clear Spinbox controls
-    for(int i=0; i< m_rgSpinBoxes.size(); i++)
-    {
-        if(m_rgSpinBoxes[i] != NULL)
-        {
-            m_FilterLayout->removeWidget(m_rgSpinBoxes[i]);
-            delete m_rgSpinBoxes[i];
-        }
-    }
-    m_rgSpinBoxes.clear();
-
-    // Add filter grid
-    for(int i =0; i< m_filterWidth; i++)
-    {
-        for(int j =0; j<m_filterHeight; j++)
-        {
-            QDoubleSpinBox *spinBox = new QDoubleSpinBox;
-            spinBox->setRange(-100.0f, 100.0f);
-            m_rgSpinBoxes.push_back(spinBox);
-            m_FilterLayout->addWidget(spinBox,i+2,j+1);
-        }
+         rgFilter[i] /= weight;
     }
 }
 
@@ -524,6 +453,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 
 }
 
+//////////////////////////////////////////////////////////
+// Mouse move
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
     if (!m_bTiltShift) {
@@ -549,9 +480,12 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
+///////////////////////////////////////////////////////
+// Release
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (!m_bTiltShift) {
+    if (!m_bTiltShift)
+    {
         // Release to add new point
         if (event->button()== Qt::LeftButton)
         {
@@ -619,11 +553,22 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
         updateRegions();
         m_lastPos = event->pos();
-    } else {
+    }
+    else
+    {
         int target = 0;
         QPoint selectedPoint;
         selectedPoint = event->pos();
-        if(m_rgRegions.size() != 0) {
+
+        // Only apply if it is inside Image label 1
+        if(!insideInputImage(m_lastPos))
+            return;
+
+        this->setCursor(Qt::WaitCursor);
+        QApplication::processEvents();
+
+        if(m_rgRegions.size() != 0)
+        {
             for(int k=0; k< m_rgRegions.size(); k++)
             {
                 if(m_rgRegions[k]->containsPoint(selectedPoint))
@@ -641,7 +586,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
             m_selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
 
-
             // Apply tilt-shift filter
             m_OutputImage.tiltShift(this, target, selectedPoint);
             OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
@@ -650,6 +594,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             // update histogram
             m_OutputImage.updateHistogram();
          }
+        this->setCursor(Qt::ArrowCursor);
      }
 }
 
@@ -705,20 +650,7 @@ MainWindow::FILTER MainWindow::getFilter(int z)
     }
 
     // Normalize filter
-    float weight = 0.0f;
-    for(int i =0; i< myFilter.rgFilter.size(); i++)
-    {
-         weight += myFilter.rgFilter[i];
-    }
-
-    if(weight == 0.0f)
-        weight = 1.0f;
-
-    for(int i =0; i< myFilter.rgFilter.size(); i++)
-    {
-         myFilter.rgFilter[i] /= weight;
-    }
-
+    normalizeFilter(myFilter.rgFilter);
     return myFilter;
 }
 
@@ -769,19 +701,7 @@ MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z, i
     }
 
     // Normalize filter
-    float weight = 0.0f;
-    for(int i =0; i< myFilter.rgFilter.size(); i++)
-    {
-         weight += myFilter.rgFilter[i];
-    }
-
-    if(weight == 0.0f)
-        weight = 1.0f;
-
-    for(int i =0; i< myFilter.rgFilter.size(); i++)
-    {
-         myFilter.rgFilter[i] /= weight;
-    }
+    normalizeFilter(myFilter.rgFilter);
 
     return myFilter;
    /* FILTER myFilter;
@@ -866,24 +786,6 @@ MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z, i
 }
 
 
-
-//////////////////////////////////////////
-// Region checkbox changed
-void MainWindow::onNormalizedChkbox(bool state)
-{
-    m_bNormalized = state;
-}
-void MainWindow::onFilterWidthChanged(int size)
-{
-    m_filterWidth = size;
-    changedFilterGrid();
-}
-void MainWindow::onFilterHeightChanged(int size)
-{
-    m_filterHeight = size;
-    changedFilterGrid();
-}
-
 void MainWindow::updateRegions()
 {
     for(int i=0; i< m_rgRegions.size(); i++)
@@ -900,9 +802,22 @@ void MainWindow::onShowRegionChkbox(bool state)
 
 //////////////////////////////////////////////////////
 // control chkbox for showing the interactive effect
-void MainWindow::onTiltShiftChkbox(bool state)
+void MainWindow::onInteractiveRadio(bool state)
 {
     m_bTiltShift = state;
+    // Hide region
+    m_showRegionChkbox->setChecked(false);
+    m_bShowRegion = false;
+    updateRegions();
+}
+
+void MainWindow::onEditModeRadio(bool state)
+{
+    m_bTiltShift = !state;
+    // show region
+    m_showRegionChkbox->setChecked(true);
+    m_bShowRegion = true;
+    updateRegions();
 }
 
 void MainWindow::onSelectedRegionLvlSpinbox(int value)
