@@ -8,7 +8,7 @@
 
 ///////////////////////////////////////////////
 // Serialization
-QDataStream & operator << ( QDataStream & out, const CRegion & region)
+QDataStream & operator << ( QDataStream & out, const CRegion& region)
 {
     out << region.getCenter()
         << region.getOrigin()
@@ -22,7 +22,7 @@ QDataStream & operator << ( QDataStream & out, const CRegion & region)
     return (out);
 }
 
-QDataStream & operator >> ( QDataStream & in, CRegion & region )
+QDataStream & operator >> ( QDataStream & in, CRegion& region )
 {
     QPoint i_center;
     QPoint i_origin;
@@ -248,7 +248,6 @@ void MainWindow::createFilterGrid()
     tiltShiftRbtn->setChecked(false);
     connect(tiltShiftRbtn, SIGNAL(toggled(bool)), this, SLOT(onInteractiveRadio(bool)));
     m_FilterLayout->addWidget(tiltShiftRbtn,2,1, Qt::AlignCenter);
-
 }
 
 /////////////////////////////////////////////////////////////////
@@ -267,14 +266,14 @@ void MainWindow::createActions()
     connect(saveFileAct, SIGNAL(triggered()), this, SLOT(saveFile()));
 
     //load input file with data
-    loadFileAndDataAct = new QAction(tr("&Load Imgae File With Data"), this);
-    loadFileAndDataAct->setShortcut(tr("Ctrl+l"));
-    connect(loadFileAndDataAct, SIGNAL(triggered()), this, SLOT(loadFileAndData()));
+    loadDataAct = new QAction(tr("&Load Imgae's Data"), this);
+    loadDataAct->setShortcut(tr("Ctrl+l"));
+    connect(loadDataAct, SIGNAL(triggered()), this, SLOT(loadData()));
 
     //save input file with data
-    saveFileAndDataAct = new QAction(tr("&Save Image File With Data"), this);
-    saveFileAndDataAct->setShortcut(tr("Ctrl+m"));
-    connect(saveFileAndDataAct, SIGNAL(triggered()), this, SLOT(saveFileAndData()));
+    saveDataAct = new QAction(tr("&Save Image's Data"), this);
+    saveDataAct->setShortcut(tr("Ctrl+m"));
+    connect(saveDataAct, SIGNAL(triggered()), this, SLOT(saveData()));
 
     // Exit menu
     exitAct = new QAction(tr("E&xit"), this);
@@ -289,8 +288,8 @@ void MainWindow::createMenus()
     fileMenu = menuBar()->addMenu(tr("&File"));
     fileMenu->addAction(openFileAct);
     fileMenu->addAction(saveFileAct);
-    fileMenu->addAction(loadFileAndDataAct);
-    fileMenu->addAction(saveFileAndDataAct);
+    fileMenu->addAction(loadDataAct);
+    fileMenu->addAction(saveDataAct);
 
     fileMenu->addSeparator();
     fileMenu->addAction(exitAct);
@@ -343,16 +342,103 @@ void MainWindow::saveFile()
 
 ////////////////////////////////////////////////////////
 // load the input image and its data
-void MainWindow::loadFileAndData()
+void MainWindow::loadData()
 {
+     QString filename = QFileDialog:: getOpenFileName(this,
+                                                      tr("Open Data File"),
+                                                      "",
+                                                      tr("Data (*.data);;All Files(*)"));
 
+     if (filename.isEmpty())
+     {
+         return;
+     } else {
+         QFile file(filename);
+
+         if(!file.open(QIODevice::ReadOnly)) {
+             QMessageBox::information(this, tr("Unable to open file"), file.errorString());
+             return;
+         }
+
+         QDataStream in (&file);
+         in.setVersion(QDataStream::Qt_4_5);
+
+         //clear the old region vector
+         if (!m_rgRegions.isEmpty())
+         {
+             for(int i=0; i< m_rgRegions.size(); i++)
+             {
+                 if(m_rgRegions[i]!= NULL)
+                     delete m_rgRegions[i];
+             }
+             m_rgRegions.clear();
+             m_selectedRegion = NULL;
+
+             m_selectedRegionStX->setValue(0);
+             m_selectedRegionStY->setValue(0);
+             m_selectedRegionEndX->setValue(0);
+             m_selectedRegionEndY->setValue(0);
+             m_selectedRegionLvl->setValue(0);
+
+             //check the checkbox
+             if (!m_bShowRegion)
+                 m_showRegionChkbox->setCheckState(Qt::Checked);
+
+             updateRegions();
+         }
+
+         //reset the region vector
+         int numRegions;
+         in >> numRegions;
+         for(int i= 0; i< numRegions; i++)
+         {
+             CRegion region;
+             in >> region;
+             CRegion* newRegion = new CRegion(region.getOrigin(), region.getEndPoint(), InputImageLabel);
+             newRegion->Z_Level(region.Z_Level());
+             newRegion->setTopLeft(region.getTopLeft());
+             newRegion->setBotRight(region.getBotRight());
+             m_rgRegions.push_back(newRegion);
+         }
+
+         //shows up the regions on imagelabel
+         updateRegions();
+
+     }
 }
 
 ////////////////////////////////////////////////////////
 // save the input image and its data
-void MainWindow::saveFileAndData()
+void MainWindow::saveData()
 {
+     QString filename = QFileDialog::getSaveFileName(this,
+                                                     tr("Save Data File"),
+                                                     "",
+                                                     tr("Data (*.data);;All File (*)"));
 
+     if ( filename.isEmpty())
+     {
+         return;
+     } else {
+         QFile file(filename);
+
+         if ( !file.open(QIODevice::WriteOnly))
+         {
+             QMessageBox::information(this, tr("Unable to save file"), file.errorString());
+             return;
+         }
+
+         QDataStream out(&file);
+         out.setVersion(QDataStream::Qt_4_5);
+
+         // save regions
+         out<< m_rgRegions.size();
+         for(int i= 0; i< m_rgRegions.size(); i++)
+         {
+             out<< *m_rgRegions[i];
+         }
+
+     }
 }
 
 
@@ -432,7 +518,8 @@ void MainWindow::normalizeFilter(QVector<float> &rgFilter)
 //Mouse Event
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
-    if (!m_bTiltShift) {
+    if (!m_bTiltShift)
+    {
         if(event->button() == Qt::LeftButton)
         {
             m_firstPos = event->pos();
@@ -457,7 +544,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 // Mouse move
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    if (!m_bTiltShift) {
+    if (!m_bTiltShift)
+    {
         if (event->buttons() & Qt::LeftButton)
         {
             if(m_selectedRegion!=NULL)
@@ -556,45 +644,49 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     }
     else
     {
-        int target = 0;
-        QPoint selectedPoint;
-        selectedPoint = event->pos();
-
-        // Only apply if it is inside Image label 1
-        if(!insideInputImage(m_lastPos))
-            return;
-
-        this->setCursor(Qt::WaitCursor);
-        QApplication::processEvents();
-
-        if(m_rgRegions.size() != 0)
+        if (event->button()== Qt::LeftButton)
         {
-            for(int k=0; k< m_rgRegions.size(); k++)
+            int target = 0;
+            QPoint selectedPoint;
+            selectedPoint = event->pos();
+
+            // Only apply if it is inside Image label 1
+            if(!insideInputImage(m_lastPos))
+                return;
+
+            if(m_rgRegions.size() != 0)
             {
-                if(m_rgRegions[k]->containsPoint(selectedPoint))
+                this->setCursor(Qt::WaitCursor);
+                QApplication::processEvents();
+
+                for(int k=0; k< m_rgRegions.size(); k++)
                 {
-                    target = m_rgRegions[k]->Z_Level();
-                    m_selectedRegion = m_rgRegions[k];
-                    break;
+                    if(m_rgRegions[k]->containsPoint(selectedPoint))
+                    {
+                        target = m_rgRegions[k]->Z_Level();
+                        m_selectedRegion = m_rgRegions[k];
+                        break;
+                    }
                 }
-            }
 
-            //upload the data information for the selected region
-            m_selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
-            m_selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
-            m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
-            m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
-            m_selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
+                //upload the data information for the selected region
+                m_selectedRegionStX->setValue(m_selectedRegion->getTopLeft().x());
+                m_selectedRegionStY->setValue(m_selectedRegion->getTopLeft().y());
+                m_selectedRegionEndX->setValue(m_selectedRegion->getBotRight().x());
+                m_selectedRegionEndY->setValue(m_selectedRegion->getBotRight().y());
+                m_selectedRegionLvl->setValue(m_selectedRegion->Z_Level());
 
-            // Apply tilt-shift filter
-            m_OutputImage.tiltShift(this, target, selectedPoint);
-            OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
-            OutputImageLabel->adjustSize();
+                // Apply tilt-shift filter
+                m_OutputImage.tiltShift(this, target, selectedPoint);
+                OutputImageLabel->setPixmap(m_OutputImage.getGrayPixmap());
+                OutputImageLabel->adjustSize();
 
-            // update histogram
-            m_OutputImage.updateHistogram();
-         }
-        this->setCursor(Qt::ArrowCursor);
+                // update histogram
+                m_OutputImage.updateHistogram();
+
+                this->setCursor(Qt::ArrowCursor);
+             }
+        }
      }
 }
 
@@ -659,16 +751,54 @@ MainWindow::FILTER MainWindow::getFilter(int z)
 MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z, int distance)
 {
     FILTER myFilter;
-    if (current_z == target_z) {
-        if (current_z < 0)
-            current_z = (-1) * current_z;
+    // if the pixel depth lvl is equal to selected position depth lvl,
+    // the region has same depth lvl will be change back to the origin
+    // image. However, the selected position with redius 30% of image width
+    // will be shapren by using 3x3 filter.
+    if (current_z == target_z)
+    {
+        // inside the focus area
+        if ( distance <= int((0.3)*m_InputImage.imageWidth()))
+        {
+            //set up filter width and height
+            myFilter.width         = 3;
+            myFilter.height        = 3;
+            myFilter.recursiveTime = 3;
 
-        if ( distance <= int((0.2)*m_InputImage.imageWidth())) {
-            current_z = 0;
-        }else {
-            current_z = 2;
+            // set up filter
+            float filterSize = myFilter.width*myFilter.height*1.0f;
+            float midPoint = filterSize + filterSize - 1;
+            int midPointIndex;
+
+            //If Height is even, set the mid pixel to be the previous one
+            if(myFilter.height%2 == 0)
+                midPointIndex = filterSize/2 -1;
+            else
+                midPointIndex = filterSize/2;
+
+            for(int i =0; i< filterSize; i++)
+            {
+                (i == midPointIndex)?myFilter.rgFilter.push_back(midPoint*1.0f):myFilter.rgFilter.push_back(-1.0f);
+            }
+
         }
-    } else {
+        else // Outside focus area
+        {
+            //nothing will be done for the region outside the redius
+            myFilter.width         = 0;
+            myFilter.height        = 0;
+            myFilter.recursiveTime = 0;
+
+            float filterSize = myFilter.width*myFilter.height*1.0f;
+            for(int i =0; i< filterSize; i++)
+            {
+                myFilter.rgFilter.push_back(1.0f);
+            }
+        }
+    }
+    else// Other regions than the focus region
+    {
+        //calculate the blur lvl for the other regions have different depth lvl
         if (current_z > 0 && target_z > 0){
             if (current_z > target_z) {
                 current_z = current_z - target_z;
@@ -687,78 +817,10 @@ MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z, i
             }
         }
 
-    }
-
-
-    myFilter.width         = current_z;
-    myFilter.height        = current_z;
-    myFilter.recursiveTime = current_z;
-
-    float filterSize = myFilter.width*myFilter.height*1.0f;
-    for(int i =0; i< filterSize; i++)
-    {
-        myFilter.rgFilter.push_back(1.0f);
-    }
-
-    // Normalize filter
-    normalizeFilter(myFilter.rgFilter);
-
-    return myFilter;
-   /* FILTER myFilter;
-
-    if (current_z == target_z) {
-        if (current_z < 0)
-            current_z = (-1) * current_z;
-
-        if (distance > int((0.2)*m_InputImage.imageWidth())
-                  && distance <= int((0.3)*m_InputImage.imageWidth())) {
-            current_z --;
-        }else if (distance > int((0.3)*m_InputImage.imageWidth())
-                  && distance <= int((0.4)*m_InputImage.imageWidth())) {
-            current_z = current_z - 2;
-        }else {
-            current_z = current_z - 3;
-        }
-
+        // Apply blur
         myFilter.width         = current_z;
         myFilter.height        = current_z;
         myFilter.recursiveTime = current_z;
-
-        // set up filter
-        float filterSize = myFilter.width*myFilter.height*1.0f;
-        float midPoint = filterSize + filterSize - 1;
-        int midPointIndex;
-
-        //If Height is even, set the mid pixel to be the previous one
-        if(myFilter.height%2 == 0)
-            midPointIndex = filterSize/2 -1;
-        else
-            midPointIndex = filterSize/2;
-
-        for(int i =0; i< filterSize; i++)
-        {
-            (i == midPointIndex)?myFilter.rgFilter.push_back(midPoint*1.0f):myFilter.rgFilter.push_back(-1.0f);
-        }
-    } else {
-        if (current_z > 0) {
-            if (current_z > target_z){
-                myFilter.width         = current_z - target_z;
-                myFilter.height        = current_z - target_z;
-            } else {
-                myFilter.width         = target_z - current_z;
-                myFilter.height        = target_z - current_z;
-            }
-            myFilter.recursiveTime = (-1) * current_z;
-        } else {
-            if (current_z > target_z){
-                myFilter.width         = current_z - target_z;
-                myFilter.height        = current_z - target_z;
-            } else {
-                myFilter.width         = target_z - current_z;
-                myFilter.height        = target_z - current_z;
-            }
-            myFilter.recursiveTime = current_z;
-        }
 
         float filterSize = myFilter.width*myFilter.height*1.0f;
         for(int i =0; i< filterSize; i++)
@@ -768,24 +830,12 @@ MainWindow::FILTER MainWindow::getTiltShiftFilter(int current_z, int target_z, i
     }
 
     // Normalize filter
-    float weight = 0.0f;
-    for(int i =0; i< myFilter.rgFilter.size(); i++)
-    {
-         weight += myFilter.rgFilter[i];
-    }
-
-    if(weight == 0.0f)
-        weight = 1.0f;
-
-    for(int i =0; i< myFilter.rgFilter.size(); i++)
-    {
-         myFilter.rgFilter[i] /= weight;
-    }
-
-    return myFilter;*/
+    normalizeFilter(myFilter.rgFilter);
+    return myFilter;
 }
 
-
+////////////////////////////////////////////////////
+// show up the current exist regions on imagelabel
 void MainWindow::updateRegions()
 {
     for(int i=0; i< m_rgRegions.size(); i++)
@@ -820,6 +870,8 @@ void MainWindow::onEditModeRadio(bool state)
     updateRegions();
 }
 
+/////////////////////////////////////////////////////////
+// the listeners(functions) of changing of spinbox
 void MainWindow::onSelectedRegionLvlSpinbox(int value)
 {
     if (m_selectedRegion != NULL)
@@ -865,6 +917,8 @@ void MainWindow::onSelectedRegionEndYSpinbox(int value)
     }
 }
 
+//////////////////////////////////////////////////////////
+//check the selected position is on the imagelabel or not
 bool MainWindow::insideInputImage(const QPoint &point)
 {
     QRect rect = InputImageLabel->rect();

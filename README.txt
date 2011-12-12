@@ -1,31 +1,33 @@
-CSC205 - Assignment 3 - Image Filtering
+///////////////////////////////////////////////////////////////////////////////////////
+//  Project Name: iLivePic                                                           //
+//  Course Number: Csc 225                                                           //
+//  Group Member:  Triet Huynh                                                       //
+//		   Ding Zhang                                                        //
+//  Approach: Our application implements to the tilt-shift tools. Unlike others,     //
+//	      having cameras to set up the depth value for each pixel, user have     //
+//            to has rubber band provide by QT to set up regions for the image and   //
+//            also assign depth value for each region.                               //
+// Functionalities:  1. users define region (multiple)                               //
+//                   2. users assign depth value (multiple)                          //
+//                   3. grow or shrink region by using spin box                      //
+//                   4. display or hide regions                                      //
+//                   5. smallgantic                                                  //
+//                   6. tilt-shift                                                   //
+//                   7. upload data (regions) and apply                              //
+//                   8. save data (regions)                                          //
+///////////////////////////////////////////////////////////////////////////////////////
 
-Hi There,
+Grades:
+       1): Finish framework to assign Z-value to each regions of the picture (30pts)
+       2): Apply Smallgantic technique (40pts) 
+       3): Make it interactive (30pts) <--- tilt-shift
+       4): Make it as gallary browers (BONUS - 20pts)
 
-You can:
+How to use it?
+ 
+Hey Muhammad,
+            Thanks for all the help! Enjoy your holiday!
 
-1. 20pts Code compiles and runs, allows user to load a source image
-2. 10pts Readme file explains application, lists and explains extra features, documents any borrowed code/tutorials
-3. 20pts User can apply a blur filter (3x3) to Source image, result is displayed on screen as Result Image
-4. 20pts User can apply a sharpen filter (3x3) to Source image, result is displayed on screen as Result Image
-
-5. 10pts Displays neighbor filter weights (3x3); 
-
-6. 10pts allow user to change radius and then re-apply filter (5x5, 7x7, etc.) 
-
-7. 5pts switch Result image to Source image (for repeated processing)
-8. 20pts Add sliders, drawable or drag-able lines to change filter weights
-
-
-9. 5pts apply a filter to each color channel
-
-Extra:
-
-10. Histogram display
-11. Edge detection algorithm
-12. Normalize option
-
-
-Thanks you!
-
-Triet Huynh
+Cheers,
+your student,
+Ding & Triet
