@@ -111,7 +111,7 @@ MainWindow::MainWindow()
 
     // Title
     centralWidget->setLayout(centralLayout);
-    setWindowTitle(tr("Triet & Ding - CSC 205 Project"));
+    setWindowTitle(tr("iLivePic Triet & Ding"));
     resize(800, 600);
 
     m_bShowRegion = true;
@@ -348,9 +348,9 @@ void MainWindow::saveFile()
 void MainWindow::loadData()
 {
      QString filename = QFileDialog:: getOpenFileName(this,
-                                                      tr("Open Data File"),
+                                                      tr("Open iLivePic File"),
                                                       "",
-                                                      tr("Data (*.data);;All Files(*)"));
+                                                      tr("Data (*.iLivePic);;All Files(*)"));
 
      if (filename.isEmpty())
      {
@@ -427,9 +427,9 @@ void MainWindow::loadData()
 void MainWindow::saveData()
 {
      QString filename = QFileDialog::getSaveFileName(this,
-                                                     tr("Save Data File"),
+                                                     tr("Save iLivePic File"),
                                                      "",
-                                                     tr("Data (*.data);;All File (*)"));
+                                                     tr("Data (*.iLivePic);;All File (*)"));
 
      if ( filename.isEmpty())
      {
